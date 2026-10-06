@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.2.0
-          name: "Simya Çemberi v1.2.0 (Canlı Renkler & Kesintisiz Dairesel Akış)"
-          body: "🎨 **Yenilikler:**\n- 10 daire arasında geniş boşluklar (kesinlikle temas etmez)\n- Çevirme yönüne göre yuvalar arasında gerçek akış (rastgele yeniden dizilme kaldırıldı)\n- Büyütülmüş sevimli emojiler ve rengarenk şeker temalı arayüz\n- Güç Kazanı dolduğunda 2 alanı temizleyen yıldırım efekti"
+          tag_name: v1.3.0
+          name: "Simya Çemberi v1.3.0 (360° Dönen Yörünge & Kusursuz Boşluklar)"
+          body: "🎡 **Yenilikler:**\n- 10 çember 360 dereceye mükemmel aralıklarla dağıtıldı (temassız ve geniş yuvalar)\n- Her çevirme hamlesinde tüm yörünge akıcı bir animasyonla 36° fiziksel olarak döner\n- İkonlar 28sp boyutuna büyütüldü ve dönerken düz kalması için karşı rotasyon uygulandı\n- Ortadaki sihirli kazan ve yıldırımlar korundu"
           files: SimyaCemberi.apk
           prerelease: false
         env:
