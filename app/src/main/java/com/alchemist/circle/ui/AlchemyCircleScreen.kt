@@ -26,8 +26,9 @@ import kotlin.math.abs
 fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
     val state by viewModel.uiState.collectAsState()
 
-    var totalDragX by remember { mutableStateOf(0f) }
-    val dragThreshold = 45f
+    var dragAmountX by remember { mutableStateOf(0f) }
+    var dragAmountY by remember { mutableStateOf(0f) }
+    val dragThreshold = 40f
 
     // GÜNCELLEME KONTROLÜ
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -51,25 +52,42 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFF1A103C), // Canlı Gece Moru
-                        Color(0xFF28114B),
-                        Color(0xFF130924)
+                        Color(0xFF140D2E), // Koyu 2048 Gece Teması
+                        Color(0xFF21103E),
+                        Color(0xFF0F081E)
                     )
                 )
             )
             .pointerInput(Unit) {
                 detectDragGestures(
-                    onDragStart = { totalDragX = 0f },
+                    onDragStart = {
+                        dragAmountX = 0f
+                        dragAmountY = 0f
+                    },
                     onDrag = { change, dragAmount ->
                         change.consume()
-                        totalDragX += dragAmount.x
+                        dragAmountX += dragAmount.x
+                        dragAmountY += dragAmount.y
                     },
                     onDragEnd = {
-                        if (abs(totalDragX) > dragThreshold) {
-                            if (totalDragX > 0) {
-                                viewModel.makeMove(MoveDirection.CLOCKWISE)
+                        val absX = abs(dragAmountX)
+                        val absY = abs(dragAmountY)
+
+                        if (absX > dragThreshold || absY > dragThreshold) {
+                            if (absX > absY) {
+                                // Yatay Kaydırma: Sağa (Saat Yönü) veya Sola (Ters Yön)
+                                if (dragAmountX > 0) {
+                                    viewModel.makeMove(MoveDirection.CLOCKWISE)
+                                } else {
+                                    viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE)
+                                }
                             } else {
-                                viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE)
+                                // Dikey Kaydırma: Aşağı (Merkeze / İçe) veya Yukarı (Dışa)
+                                if (dragAmountY > 0) {
+                                    viewModel.makeMove(MoveDirection.INWARD)
+                                } else {
+                                    viewModel.makeMove(MoveDirection.OUTWARD)
+                                }
                             }
                         }
                     }
@@ -82,10 +100,10 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. ÜST PANEL: Renkli Başlık ve Skor Kartları
+            // 1. ÜST PANEL: 2048 Çember Başlığı ve Skor Kartları
             HeaderSection(state = state)
 
-            // 2. ORTA ALAN: 10 Daireli Renkli Simya Çemberi + Güç Kazanı
+            // 2. ORTA ALAN: 3 Eşmerkezli Halka (İç, Orta, Dış) + Güç Kazanı
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -100,11 +118,13 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
                 )
             }
 
-            // 3. ALT ALAN: Güç Durumu ve Renkli Butonlar
+            // 3. ALT ALAN: Güç Durumu ve 4 Yönlü Kontrol Butonları
             ControlsSection(
                 state = state,
                 onRotateLeft = { viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE) },
-                onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) }
+                onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) },
+                onMoveInward = { viewModel.makeMove(MoveDirection.INWARD) },
+                onMoveOutward = { viewModel.makeMove(MoveDirection.OUTWARD) }
             )
         }
 
@@ -195,7 +215,7 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
 private fun HeaderSection(state: GameState) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = "✨ SİMYA ÇEMBERİ ✨",
+            text = "✨ 2048 ÇEMBERİ ✨",
             color = Color(0xFFFFEB3B),
             fontSize = 26.sp,
             fontWeight = FontWeight.Black,
@@ -234,7 +254,9 @@ private fun ScoreBadge(title: String, score: Int, color: Color) {
 private fun ControlsSection(
     state: GameState,
     onRotateLeft: () -> Unit,
-    onRotateRight: () -> Unit
+    onRotateRight: () -> Unit,
+    onMoveInward: () -> Unit,
+    onMoveOutward: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -242,9 +264,9 @@ private fun ControlsSection(
     ) {
         val isReady = state.cauldronCharge >= 1.0f
         Text(
-            text = if (isReady) "⚡ YILDIRIM PATLAMASI ALAN AÇIYOR! 💥" else "🧪 Sihirli Güç Kazanı: %${(state.cauldronCharge * 100).toInt()}",
-            color = if (isReady) Color(0xFFFFEB3B) else Color(0xFFFF80AB),
-            fontSize = 14.sp,
+            text = if (isReady) "⚡ 2048 GÜÇ PATLAMASI: 2 RASTGELE TAŞ TEMİZLENDİ! 💥" else "🧪 2048 Güç Şarjı: %${(state.cauldronCharge * 100).toInt()}",
+            color = if (isReady) Color(0xFFFFEB3B) else Color(0xFFFFD54F),
+            fontSize = 13.sp,
             fontWeight = FontWeight.ExtraBold
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -254,43 +276,63 @@ private fun ControlsSection(
                 .fillMaxWidth(0.85f)
                 .height(8.dp)
                 .shadow(4.dp, RoundedCornerShape(4.dp)),
-            color = if (isReady) Color(0xFFFFEB3B) else Color(0xFFFF4081),
+            color = if (isReady) Color(0xFFFFEB3B) else Color(0xFF00E676),
             trackColor = Color(0xFF38235F),
         )
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Canlı, Çocuksu ve Büyük Çevirme Butonları
+        // 4 YÖNLÜ DİREKSİYON KONTROL BUTONLARI (Parmağını kaydırmak istemeyenler için pratik)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Button(
                 onClick = onRotateLeft,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .width(145.dp)
-                    .height(50.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp))
+                    .weight(1f)
+                    .height(46.dp)
+                    .padding(horizontal = 4.dp)
             ) {
-                Text(text = "🌀", fontSize = 18.sp)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Sola Çevir", color = Color.White, fontWeight = FontWeight.Bold)
+                Text(text = "↺ Sola", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onMoveInward,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B0FF)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(text = "↓ İçe", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+
+            Button(
+                onClick = onMoveOutward,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9100)),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text(text = "↑ Dışa", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
 
             Button(
                 onClick = onRotateRight,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4081)),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
-                    .width(145.dp)
-                    .height(50.dp)
-                    .shadow(8.dp, RoundedCornerShape(20.dp))
+                    .weight(1f)
+                    .height(46.dp)
+                    .padding(horizontal = 4.dp)
             ) {
-                Text("Sağa Çevir", color = Color.White, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "🌀", fontSize = 18.sp)
+                Text(text = "Sağa ↻", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

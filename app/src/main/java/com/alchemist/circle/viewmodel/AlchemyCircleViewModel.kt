@@ -29,19 +29,19 @@ class AlchemyCircleViewModel(
     }
 
     fun startNewGame() {
-        val initialSlots: MutableList<ElementTier?> = MutableList(GameState.SLOT_COUNT) { null }
-        // 8 yuvada öngörülebilir temiz başlangıç:
-        // En üst yuva (0) ve saat 3 yuvası (2)
-        initialSlots[0] = ElementTier.WATER
-        initialSlots[2] = ElementTier.WATER
+        var slots: List<ElementTier?> = List(GameState.TOTAL_SLOTS) { null }
+        // 2048 başlangıcı: 2 adet rastgele 2 veya 4 taşı
+        slots = engine.spawnRandomTile(slots)
+        slots = engine.spawnRandomTile(slots)
 
         _uiState.value = GameState(
-            slots = initialSlots,
+            slots = slots,
             score = 0,
             bestScore = scorePreferences.getBestScore(),
             cauldronCharge = 0f,
             lightningTargets = emptyList(),
-            isGameOver = false
+            isGameOver = false,
+            won2048 = false
         )
     }
 
@@ -49,19 +49,21 @@ class AlchemyCircleViewModel(
         val state = _uiState.value
         if (state.isGameOver || isBusy) return
 
+        val result = engine.processMove(state.slots, direction)
+        // Eğer tahtada hiçbir taş hareket etmedi veya birleşmediyse hamle geçersizdir (2048 kuralı)
+        if (!result.hasMoved) return
+
         isBusy = true
         viewModelScope.launch {
-            // 1. Taşları yön doğrultusunda tam 1 adım ilerlet ve birleşmeleri hesapla
-            val result = engine.processMove(state.slots, direction)
-
-            // 2. Taşlar döndükten sonra arkadaki portaldan yeni taş girsin
-            val updatedSlots = engine.spawnAtPortal(result.newSlots, direction)
+            // Hamle yapıldıysa yeni rastgele taş girer
+            val updatedSlots = engine.spawnRandomTile(result.newSlots)
             val newScore = state.score + result.pointsEarned
             scorePreferences.saveBestScore(newScore)
 
-            val chargeBonus = result.mergedCount * 0.25f
+            val chargeBonus = result.mergedCount * 0.20f
             val newCharge = (state.cauldronCharge + chargeBonus).coerceAtMost(1.0f)
             val gameOver = engine.isGameOver(updatedSlots)
+            val hasWon = updatedSlots.any { it == ElementTier.T_2048 }
 
             _uiState.update {
                 it.copy(
@@ -69,16 +71,17 @@ class AlchemyCircleViewModel(
                     score = newScore,
                     bestScore = maxOf(newScore, it.bestScore),
                     cauldronCharge = newCharge,
-                    isGameOver = gameOver
+                    isGameOver = gameOver,
+                    won2048 = it.won2048 || hasWon
                 )
             }
 
-            // Güç kazanı %100 dolduysa yıldırım patlaması
+            // Güç kazanı dolduğunda 2 taş temizleme jokeri
             if (newCharge >= 1.0f) {
                 delay(300)
                 triggerCauldronDischarge()
             } else {
-                delay(120) // Seri hamleler için hafif gecikme
+                delay(100)
                 isBusy = false
             }
         }

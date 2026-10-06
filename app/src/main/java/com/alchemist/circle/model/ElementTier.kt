@@ -7,16 +7,19 @@ enum class ElementTier(
     val symbol: String,
     val title: String,
     val color: Color,
-    val borderColor: Color
+    val textColor: Color = Color.White
 ) {
-    WATER(2, "💧", "Su", Color(0xFF00B0FF), Color(0xFF80D8FF)),
-    STEAM(4, "💨", "Buhar", Color(0xFF00E676), Color(0xFFB9F6CA)),
-    CLOUD(8, "☁️", "Bulut", Color(0xFFFFD600), Color(0xFFFFFF8D)),
-    ENERGY(16, "⚡", "Enerji", Color(0xFFFF9100), Color(0xFFFFD180)),
-    PLASMA(32, "🔥", "Ateş", Color(0xFFFF3D00), Color(0xFFFF9E80)),
-    STAR(64, "⭐", "Yıldız", Color(0xFFFF1744), Color(0xFFFF80AB)),
-    UNIVERSE(128, "🌈", "Gökkuşağı", Color(0xFFD500F9), Color(0xFFEA80FC)),
-    DIAMOND(256, "👑", "Taç", Color(0xFFAA00FF), Color(0xFFE040FB));
+    T_2(2, "2", "2", Color(0xFFEEE4DA), Color(0xFF776E65)),
+    T_4(4, "4", "4", Color(0xFFEDE0C8), Color(0xFF776E65)),
+    T_8(8, "8", "8", Color(0xFFF2B179), Color(0xFFF9F6F2)),
+    T_16(16, "16", "16", Color(0xFFF59563), Color(0xFFF9F6F2)),
+    T_32(32, "32", "32", Color(0xFFF67C5F), Color(0xFFF9F6F2)),
+    T_64(64, "64", "64", Color(0xFFF65E3B), Color(0xFFF9F6F2)),
+    T_128(128, "128", "128", Color(0xFFEDCF72), Color(0xFFF9F6F2)),
+    T_256(256, "256", "256", Color(0xFFEDCC61), Color(0xFFF9F6F2)),
+    T_512(512, "512", "512", Color(0xFFEDC850), Color(0xFFF9F6F2)),
+    T_1024(1024, "1024", "1024", Color(0xFFEDC53F), Color(0xFFF9F6F2)),
+    T_2048(2048, "2048", "2048", Color(0xFFEDC22E), Color(0xFFF9F6F2));
 
     fun nextTier(): ElementTier? {
         val nextIndex = ordinal + 1

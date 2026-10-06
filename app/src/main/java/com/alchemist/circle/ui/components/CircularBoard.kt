@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alchemist.circle.model.ElementTier
+import com.alchemist.circle.model.GameState
 import kotlin.math.*
 
 @Composable
@@ -45,7 +46,7 @@ fun CircularBoard(
         label = "pulseScale"
     )
 
-    // Arka plan sihirli ışıltısı
+    // Arka plan ışıltısı
     val magicGlow by infiniteTransition.animateFloat(
         initialValue = 0.4f,
         targetValue = 0.85f,
@@ -61,19 +62,19 @@ fun CircularBoard(
         contentAlignment = Alignment.Center
     ) {
         val sizePx = constraints.maxWidth.coerceAtMost(constraints.maxHeight).toFloat()
-        
-        // 8 YUVA İLE MÜKEMMEL ALTIN ORAN:
-        // Yarıçap (radiusPx) = %38
-        // Yuva boyutu (slotSize) = %14 (~50dp)
-        // 8 yuva: Tam 45° aralıklarla (Üst, Sağ-Üst, Sağ, Sağ-Alt, Alt, Sol-Alt, Sol, Sol-Üst)
-        // İki yuva merkezi arası mesafe = 2 * R * sin(22.5°) ≈ 0.29 * sizePx
-        // Yuva çapı = 0.14 * sizePx -> Net aralık = 0.15 * sizePx (~55dp tertemiz boşluk!)
-        // Asla temas etmez, parmakla oynaması ve görmesi son derece akıcı ve zevklidir!
-        val radiusPx = sizePx * 0.38f
-        val slotSize = (sizePx * 0.14f).dp
-        val count = slots.size
 
-        // 1. NEŞELİ SİHİR RAYI VE YILDIRIM EFEKTLERİ CANVAS
+        // 3 EŞMERKEZLİ HALKA GEOMETRİSİ:
+        // İç Halka (r=0):  sizePx * 0.23f (~40dp slot)
+        // Orta Halka (r=1): sizePx * 0.33f (~42dp slot)
+        // Dış Halka (r=2):  sizePx * 0.43f (~44dp slot)
+        val ringRadiiPx = listOf(
+            sizePx * 0.22f, // İç Halka (Inner)
+            sizePx * 0.32f, // Orta Halka (Middle)
+            sizePx * 0.42f  // Dış Halka (Outer)
+        )
+        val slotSizes = listOf(36.dp, 40.dp, 44.dp)
+
+        // 1. NEŞELİ 2048 ÇEMBER RAYLARI & ELEKTRİK EFEKTLERİ CANVAS
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
 
@@ -81,55 +82,63 @@ fun CircularBoard(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF7C4DFF).copy(alpha = magicGlow * 0.35f),
-                        Color(0xFFFF4081).copy(alpha = magicGlow * 0.15f),
+                        Color(0xFF7C4DFF).copy(alpha = magicGlow * 0.25f),
+                        Color(0xFFFF4081).copy(alpha = magicGlow * 0.10f),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = radiusPx * 1.35f
+                    radius = ringRadiiPx[2] * 1.25f
                 ),
-                radius = radiusPx * 1.35f,
+                radius = ringRadiiPx[2] * 1.25f,
                 center = center
             )
 
-            // Neon Yörünge Rayı
-            drawCircle(
-                color = Color(0xFFFFD54F).copy(alpha = 0.45f),
-                radius = radiusPx,
-                center = center,
-                style = Stroke(width = 4.dp.toPx())
-            )
+            // 3 Eşmerkezli Yörünge Halkası Çizimi
+            ringRadiiPx.forEachIndexed { idx, radius ->
+                drawCircle(
+                    color = when (idx) {
+                        0 -> Color(0xFF00E5FF).copy(alpha = 0.35f)
+                        1 -> Color(0xFFFFD54F).copy(alpha = 0.35f)
+                        else -> Color(0xFFFF4081).copy(alpha = 0.35f)
+                    },
+                    radius = radius,
+                    center = center,
+                    style = Stroke(width = (2.5f + idx).dp.toPx())
+                )
+            }
 
-            // Kesikli İç Yörünge Halkası
-            drawCircle(
-                color = Color(0xFF00E5FF).copy(alpha = 0.25f),
-                radius = radiusPx * 0.65f,
-                center = center,
-                style = Stroke(width = 2.dp.toPx())
-            )
+            // 8 Radyal Kılavuz Çizgi (İçten dışa sektör eksenleri)
+            for (s in 0 until GameState.SLOTS_PER_RING) {
+                val angleRad = (2.0 * PI / GameState.SLOTS_PER_RING) * s - (PI / 2.0)
+                val startX = (ringRadiiPx[0] * 0.7f * cos(angleRad)).toFloat() + center.x
+                val startY = (ringRadiiPx[0] * 0.7f * sin(angleRad)).toFloat() + center.y
+                val endX = (ringRadiiPx[2] * 1.08f * cos(angleRad)).toFloat() + center.x
+                val endY = (ringRadiiPx[2] * 1.08f * sin(angleRad)).toFloat() + center.y
 
-            // Üst Portal Işıltısı (Yeni Taş Girişi)
-            val portalY = center.y - radiusPx
-            drawCircle(
-                color = Color(0xFF00E5FF).copy(alpha = 0.7f),
-                radius = 9.dp.toPx(),
-                center = Offset(center.x, portalY)
-            )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.08f),
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 1.5.dp.toPx()
+                )
+            }
 
-            // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere elektrik arkları
+            // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere arklar
             if (lightningTargets.isNotEmpty()) {
                 lightningTargets.forEach { targetIndex ->
-                    // Yuva 0 en tepede olsun diye -PI/2 ofseti
-                    val angleRad = (2.0 * PI / count) * targetIndex - (PI / 2.0)
-                    val targetX = (radiusPx * cos(angleRad)).toFloat() + center.x
-                    val targetY = (radiusPx * sin(angleRad)).toFloat() + center.y
+                    val r = GameState.getRing(targetIndex)
+                    val s = GameState.getSector(targetIndex)
+                    val radius = ringRadiiPx[r]
+                    val angleRad = (2.0 * PI / GameState.SLOTS_PER_RING) * s - (PI / 2.0)
+                    val targetX = (radius * cos(angleRad)).toFloat() + center.x
+                    val targetY = (radius * sin(angleRad)).toFloat() + center.y
 
                     val lightningPath = Path().apply {
                         moveTo(center.x, center.y)
-                        val midX1 = center.x + (targetX - center.x) * 0.35f + ((-18..18).random())
-                        val midY1 = center.y + (targetY - center.y) * 0.35f + ((-18..18).random())
-                        val midX2 = center.x + (targetX - center.x) * 0.70f + ((-18..18).random())
-                        val midY2 = center.y + (targetY - center.y) * 0.70f + ((-18..18).random())
+                        val midX1 = center.x + (targetX - center.x) * 0.35f + ((-14..14).random())
+                        val midY1 = center.y + (targetY - center.y) * 0.35f + ((-14..14).random())
+                        val midX2 = center.x + (targetX - center.x) * 0.70f + ((-14..14).random())
+                        val midY2 = center.y + (targetY - center.y) * 0.70f + ((-14..14).random())
                         lineTo(midX1, midY1)
                         lineTo(midX2, midY2)
                         lineTo(targetX, targetY)
@@ -138,25 +147,25 @@ fun CircularBoard(
                     drawPath(
                         path = lightningPath,
                         color = Color(0xFFFFEB3B),
-                        style = Stroke(width = 8.dp.toPx())
+                        style = Stroke(width = 7.dp.toPx())
                     )
                     drawPath(
                         path = lightningPath,
                         color = Color.White,
-                        style = Stroke(width = 3.5.dp.toPx())
+                        style = Stroke(width = 3.dp.toPx())
                     )
                 }
             }
         }
 
-        // 2. ORTADAKİ RENKLİ GÜÇ KAZANI (Cauldron)
-        val cauldronSize = (sizePx * 0.28f).dp
+        // 2. ORTADAKİ GÜÇ KAZANI (Merkez 2048 Kalbi)
+        val cauldronSize = (sizePx * 0.20f).dp
         Box(
             modifier = Modifier
                 .size(cauldronSize)
                 .scale(if (cauldronCharge >= 1.0f) pulseScale else 1f)
                 .shadow(
-                    elevation = if (cauldronCharge >= 1.0f) 16.dp else 6.dp,
+                    elevation = if (cauldronCharge >= 1.0f) 16.dp else 4.dp,
                     shape = CircleShape,
                     spotColor = Color(0xFFFFEB3B)
                 )
@@ -167,15 +176,15 @@ fun CircularBoard(
                             listOf(Color(0xFFFFEB3B), Color(0xFFFF4081), Color(0xFF651FFF))
                         } else {
                             listOf(
-                                Color(0xFFFF80AB).copy(alpha = 0.4f + cauldronCharge * 0.6f),
-                                Color(0xFF4A148C),
-                                Color(0xFF1A0933)
+                                Color(0xFFFF80AB).copy(alpha = 0.3f + cauldronCharge * 0.7f),
+                                Color(0xFF381358),
+                                Color(0xFF140726)
                             )
                         }
                     )
                 )
                 .border(
-                    width = if (cauldronCharge >= 1.0f) 4.dp else 2.5.dp,
+                    width = if (cauldronCharge >= 1.0f) 3.5.dp else 2.dp,
                     color = if (cauldronCharge >= 1.0f) Color(0xFFFFEB3B) else Color(0xFFFF80AB),
                     shape = CircleShape
                 ),
@@ -186,26 +195,33 @@ fun CircularBoard(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = if (cauldronCharge >= 1.0f) "⚡" else "🧪",
-                    fontSize = 32.sp
+                    text = if (cauldronCharge >= 1.0f) "⚡" else "2048",
+                    color = Color.White,
+                    fontSize = if (cauldronCharge >= 1.0f) 22.sp else 13.sp,
+                    fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "${(cauldronCharge * 100).toInt()}%",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.ExtraBold
+                    color = Color(0xFFFFD54F),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        // 3. 8 ADET KUSURSUZ YUVA (0. İndeks tam en tepede: 12 yönünde)
-        for (index in 0 until count) {
-            // Yuva 0 tam en üstte (12 yönü) başlar: -PI/2
-            val angleRad = (2.0 * PI / count) * index - (PI / 2.0)
-            val xOffsetPx = (radiusPx * cos(angleRad)).toFloat()
-            val yOffsetPx = (radiusPx * sin(angleRad)).toFloat()
+        // 3. 3 HALKA X 8 SEKTÖR = 24 ADET 2048 DAİRESEL TAŞ YUVASI
+        for (index in 0 until GameState.TOTAL_SLOTS) {
+            val r = GameState.getRing(index)
+            val s = GameState.getSector(index)
+            val radius = ringRadiiPx[r]
+            val slotSize = slotSizes[r]
 
-            val tier = slots[index]
+            // Sektör açısı: 0 en tepede (12 yönü) -> -PI/2 ofset
+            val angleRad = (2.0 * PI / GameState.SLOTS_PER_RING) * s - (PI / 2.0)
+            val xOffsetPx = (radius * cos(angleRad)).toFloat()
+            val yOffsetPx = (radius * sin(angleRad)).toFloat()
+
+            val tier = slots.getOrNull(index)
             val isBeingStruck = lightningTargets.contains(index)
 
             Box(
@@ -214,24 +230,24 @@ fun CircularBoard(
                     .size(slotSize)
                     .scale(if (isBeingStruck) 1.25f else 1f)
                     .shadow(
-                        elevation = if (tier != null) 8.dp else 2.dp,
+                        elevation = if (tier != null) 6.dp else 1.dp,
                         shape = CircleShape,
-                        spotColor = tier?.color ?: Color(0x33000000)
+                        spotColor = tier?.color ?: Color.Transparent
                     )
                     .clip(CircleShape)
                     .background(
                         when {
                             isBeingStruck -> Color(0xFFFFEB3B)
                             tier != null -> tier.color
-                            else -> Color(0xFF261D42).copy(alpha = 0.75f)
+                            else -> Color(0xFF231A3D).copy(alpha = 0.8f)
                         }
                     )
                     .border(
-                        width = if (isBeingStruck) 3.5.dp else if (tier != null) 3.dp else 1.5.dp,
+                        width = if (isBeingStruck) 3.dp else if (tier != null) 2.dp else 1.dp,
                         color = when {
                             isBeingStruck -> Color.White
-                            tier != null -> tier.borderColor
-                            else -> Color(0xFF4C3E75)
+                            tier != null -> Color.White.copy(alpha = 0.8f)
+                            else -> Color(0xFF45366D)
                         },
                         shape = CircleShape
                     ),
@@ -239,8 +255,15 @@ fun CircularBoard(
             ) {
                 if (tier != null) {
                     Text(
-                        text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 24.sp
+                        text = if (isBeingStruck) "💥" else "${tier.value}",
+                        color = tier.textColor,
+                        fontSize = when {
+                            tier.value >= 1024 -> 10.sp
+                            tier.value >= 128 -> 12.sp
+                            tier.value >= 16 -> 14.sp
+                            else -> 16.sp
+                        },
+                        fontWeight = FontWeight.Black
                     )
                 }
             }
