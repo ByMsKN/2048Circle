@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.SimyaCemberi" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0F0C20</item>
+        <item name="android:navigationBarColor">#090614</item>
+    </style>
+</resources>
