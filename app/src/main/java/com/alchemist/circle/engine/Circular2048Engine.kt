@@ -13,90 +13,78 @@ class Circular2048Engine {
     )
 
     /**
-     * KULLANICININ TAM KONTROLÜNDE OLAN DÖNDÜRME MEKANİĞİ:
+     * KUSURSUZ 1 ADIM DÖNDÜRME & ÇARPIŞMA (1-Step Circular Physics):
      * 
-     * Saat yönünde (CLOCKWISE) çevrildiğinde:
-     * - Yuva 0 -> Yuva 1'e gider
-     * - Yuva 1 -> Yuva 2'ye gider
-     * - ...
-     * - Yuva 9 -> Yuva 0'a gider.
+     * Saat Yönü (CLOCKWISE):
+     * - Yuva i'deki taş, yuva (i + 1) % n'e doğru 1 adım döner.
      * 
-     * Saat yönünün tersine (COUNTER_CLOCKWISE) çevrildiğinde:
-     * - Yuva 1 -> Yuva 0'a gider
-     * - Yuva 0 -> Yuva 9'a gider.
+     * Saat Yönünün Tersi (COUNTER_CLOCKWISE):
+     * - Yuva i'deki taş, yuva (i - 1 + n) % n'e doğru 1 adım döner.
      * 
-     * Birleşme Kuralı:
-     * Eğer iki komşu taş aynıysa ve hareket yönünde birbirlerine doğru dönüyorlarsa,
-     * hedef yuvada bir üst elemente evrilirler!
+     * Birleşme:
+     * - Eğer hedef yuva doluysa ve aynı elementse -> 1 üst seviyeye birleşir!
+     * - Eğer hedef yuva boşsa -> Taş oraya kayar.
      */
     fun processMove(slots: List<ElementTier?>, direction: MoveDirection): TurnResult {
         val n = slots.size
         var pointsEarned = 0
         var mergedCount = 0
-
         val step = if (direction == MoveDirection.CLOCKWISE) 1 else -1
 
-        // 1. Her taş yön doğrultusunda tam 1 yuva ilerler:
-        val rotated = MutableList<ElementTier?>(n) { null }
+        // Adım 1: Bütün taşları 1 adım ilerlet
+        val shifted = MutableList<ElementTier?>(n) { null }
         for (i in 0 until n) {
-            val targetIdx = (i + step + n) % n
-            rotated[targetIdx] = slots[i]
+            val target = (i + step + n) % n
+            shifted[target] = slots[i]
         }
 
-        // 2. Birleşme kontrolü:
-        // Eğer hareket sonrasında komşu olan iki taş aynı değere sahipse,
-        // hareketin vardığı öndeki yuvada birleşirler!
-        val result = rotated.toMutableList()
+        // Adım 2: Çarpışma / Birleşme (Dönüş yönünde yan yana gelen aynı taşlar)
+        val finalSlots = shifted.toMutableList()
         val merged = BooleanArray(n) { false }
 
         for (k in 0 until n) {
-            val i = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
-            val nextIdx = (i + step + n) % n
+            val from = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
+            val to = (from + step + n) % n
 
-            val currentElem = result[i]
-            val nextElem = result[nextIdx]
+            val fromElem = finalSlots[from]
+            val toElem = finalSlots[to]
 
-            if (currentElem != null && nextElem != null && currentElem == nextElem && !merged[i] && !merged[nextIdx]) {
-                val upgraded = nextElem.nextTier()
-                if (upgraded != null) {
-                    result[nextIdx] = upgraded
-                    result[i] = null
-                    merged[nextIdx] = true
-                    pointsEarned += upgraded.value
+            if (fromElem != null && toElem != null && fromElem == toElem && !merged[from] && !merged[to]) {
+                val nextTier = toElem.nextTier()
+                if (nextTier != null) {
+                    finalSlots[to] = nextTier
+                    finalSlots[from] = null
+                    merged[to] = true
+                    pointsEarned += nextTier.value
                     mergedCount++
                 }
             }
         }
 
-        return TurnResult(result, pointsEarned, mergedCount)
+        return TurnResult(finalSlots, pointsEarned, mergedCount)
     }
 
     /**
-     * SABİT VE ÖNGÖRÜLEBİLİR YENİ ELEMENT DOĞMA NOKTASI:
-     * Yeni taşlar rastgele bir yere ışınlanmaz!
-     * Döndürme yapıldığında, hareketin başlangıç noktasına (kuyruğuna) yeni taş girer.
-     * 
-     * Saat yönünde çevrildiğinde: Taşlar 0 -> 1 -> 2 diye aktığı için,
-     * en tepedeki Yuva 0 boşalır ve yeni taş Yuva 0'dan oyuna girer.
-     * Eğer Yuva 0 doluysa, en yakın boş komşu yuvadan girer.
+     * Öngörülebilir Yeni Element Girişi:
+     * Yeni taş daima dönüşün başlangıç kapısından (Portal) oyuna girer.
+     * CLOCKWISE ise Yuva 0 (en üst), COUNTER_CLOCKWISE ise Yuva (n - 1).
+     * Eğer portal doluysa en yakın ilk boş yuvaya yerleşir.
      */
-    fun spawnNewElementAtPortal(slots: List<ElementTier?>, direction: MoveDirection): List<ElementTier?> {
+    fun spawnAtPortal(slots: List<ElementTier?>, direction: MoveDirection): List<ElementTier?> {
         val emptyIndices = slots.indices.filter { slots[it] == null }
         if (emptyIndices.isEmpty()) return slots
 
-        // Sabit portal girişi: Saat yönünde Yuva 0 (en tepe), Ters yönde Yuva 9
-        val preferredPortal = if (direction == MoveDirection.CLOCKWISE) 0 else (slots.size - 1)
-        val targetIndex = if (slots[preferredPortal] == null) {
-            preferredPortal
+        val portal = if (direction == MoveDirection.CLOCKWISE) 0 else (slots.size - 1)
+        val targetIndex = if (slots[portal] == null) {
+            portal
         } else {
-            // Tercih edilen portal doluysa boş olan en yakın yuvaya yerleştir
-            emptyIndices.minByOrNull { Math.abs(it - preferredPortal) } ?: emptyIndices.first()
+            emptyIndices.minByOrNull { Math.abs(it - portal) } ?: emptyIndices.first()
         }
 
-        val spawnedTier = if (Random.nextFloat() < 0.85f) ElementTier.WATER else ElementTier.STEAM
+        val spawned = if (Random.nextFloat() < 0.85f) ElementTier.WATER else ElementTier.STEAM
 
         return slots.toMutableList().apply {
-            this[targetIndex] = spawnedTier
+            this[targetIndex] = spawned
         }
     }
 

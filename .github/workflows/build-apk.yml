@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.6.0
-          name: "Simya Çemberi v1.6.0 (Kusursuz Çark Fiziği & Portal Girişi)"
-          body: "🎯 **Giderilen Sorunlar:**\n- Taşların rastgele yer değiştirmesi tamamen çözüldü!\n- Çark çevrildiğinde gözünüzün önünde akıcı bir animasyonla 36° döner.\n- Yeni taşlar artık rastgele ışınlanmaz; sadece üst portaldan (en tepeden) öngörülebilir şekilde oyuna girer.\n- Tam kontrollü stratejik birleştirme deneyimi."
+          tag_name: v2.0.0
+          name: "Simya Çemberi v2.0.0 (Kusursuz 8 Yuva & Akıcı Oynanış)"
+          body: "🚀 **BÜYÜK YENİDEN YAPILANDIRMA (v2.0):**\n- Çember sayısı oyun dengesi için ideal olan **8 yuvaya (45° simetri)** çekildi.\n- Ekranda çemberlerin birbirine çarpması veya rastgele kayması KESİNLİKLE kaldırıldı.\n- Sağa basınca saat yönünde, sola basınca ters yönde taşlar kusursuz ve öngörülebilir 1 adım ilerler.\n- Yeni taşlar daima en tepedeki portaldan oyuna girer."
           files: SimyaCemberi.apk
           prerelease: false
         env:

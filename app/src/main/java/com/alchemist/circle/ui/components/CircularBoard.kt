@@ -12,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -30,22 +29,10 @@ import kotlin.math.*
 @Composable
 fun CircularBoard(
     slots: List<ElementTier?>,
-    rotationAngle: Float,
     cauldronCharge: Float,
     lightningTargets: List<Int>,
     modifier: Modifier = Modifier
 ) {
-    // 1. FİZİKSEL ÇARK DÖNÜŞ ANİMASYONU:
-    // Kullanıcı çevirdiğinde tüm yörünge akıcı bir şekilde yeni yuvasına döner!
-    val animatedRotation by animateFloatAsState(
-        targetValue = rotationAngle,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "WheelPhysicalRotation"
-    )
-
     // Güç kazanı için nabız efekti
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -75,18 +62,22 @@ fun CircularBoard(
     ) {
         val sizePx = constraints.maxWidth.coerceAtMost(constraints.maxHeight).toFloat()
         
-        // Geometri:
-        // Yarıçap (radiusPx) = %39
-        // Yuva boyutu (slotSize) = %7.8 (~28-30dp)
-        val radiusPx = sizePx * 0.39f
-        val slotSize = (sizePx * 0.078f).dp
+        // 8 YUVA İLE MÜKEMMEL ALTIN ORAN:
+        // Yarıçap (radiusPx) = %38
+        // Yuva boyutu (slotSize) = %14 (~50dp)
+        // 8 yuva: Tam 45° aralıklarla (Üst, Sağ-Üst, Sağ, Sağ-Alt, Alt, Sol-Alt, Sol, Sol-Üst)
+        // İki yuva merkezi arası mesafe = 2 * R * sin(22.5°) ≈ 0.29 * sizePx
+        // Yuva çapı = 0.14 * sizePx -> Net aralık = 0.15 * sizePx (~55dp tertemiz boşluk!)
+        // Asla temas etmez, parmakla oynaması ve görmesi son derece akıcı ve zevklidir!
+        val radiusPx = sizePx * 0.38f
+        val slotSize = (sizePx * 0.14f).dp
         val count = slots.size
 
         // 1. NEŞELİ SİHİR RAYI VE YILDIRIM EFEKTLERİ CANVAS
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
 
-            // Dış sihirli ışıltı
+            // Dış atmosferik sihir halesi
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -112,24 +103,24 @@ fun CircularBoard(
             // Kesikli İç Yörünge Halkası
             drawCircle(
                 color = Color(0xFF00E5FF).copy(alpha = 0.25f),
-                radius = radiusPx * 0.72f,
+                radius = radiusPx * 0.65f,
                 center = center,
                 style = Stroke(width = 2.dp.toPx())
             )
 
-            // Üst Portal İşareti (Yeni Taş Giriş Kapısı):
-            // En tepede küçük tatlı bir yıldız/portal ışıltısı
+            // Üst Portal Işıltısı (Yeni Taş Girişi)
             val portalY = center.y - radiusPx
             drawCircle(
-                color = Color(0xFF00E5FF).copy(alpha = 0.6f),
-                radius = 8.dp.toPx(),
+                color = Color(0xFF00E5FF).copy(alpha = 0.7f),
+                radius = 9.dp.toPx(),
                 center = Offset(center.x, portalY)
             )
 
             // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere elektrik arkları
             if (lightningTargets.isNotEmpty()) {
                 lightningTargets.forEach { targetIndex ->
-                    val angleRad = (2.0 * PI / count) * targetIndex
+                    // Yuva 0 en tepede olsun diye -PI/2 ofseti
+                    val angleRad = (2.0 * PI / count) * targetIndex - (PI / 2.0)
                     val targetX = (radiusPx * cos(angleRad)).toFloat() + center.x
                     val targetY = (radiusPx * sin(angleRad)).toFloat() + center.y
 
@@ -159,7 +150,7 @@ fun CircularBoard(
         }
 
         // 2. ORTADAKİ RENKLİ GÜÇ KAZANI (Cauldron)
-        val cauldronSize = (sizePx * 0.26f).dp
+        val cauldronSize = (sizePx * 0.28f).dp
         Box(
             modifier = Modifier
                 .size(cauldronSize)
@@ -196,25 +187,23 @@ fun CircularBoard(
             ) {
                 Text(
                     text = if (cauldronCharge >= 1.0f) "⚡" else "🧪",
-                    fontSize = 30.sp
+                    fontSize = 32.sp
                 )
                 Text(
                     text = "${(cauldronCharge * 100).toInt()}%",
                     color = Color.White,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
             }
         }
 
-        // 3. ÇARKLA BİRLİKTE AKICI DÖNEN 10 ADET YUVA
+        // 3. 8 ADET KUSURSUZ YUVA (0. İndeks tam en tepede: 12 yönünde)
         for (index in 0 until count) {
-            // Açı formülü: 10 eşit parça (36°) + Çarkın akıcı fiziksel dönüşü
-            val baseAngleRad = (2.0 * PI / count) * index
-            val totalAngleRad = baseAngleRad + Math.toRadians(animatedRotation.toDouble())
-
-            val xOffsetPx = (radiusPx * cos(totalAngleRad)).toFloat()
-            val yOffsetPx = (radiusPx * sin(totalAngleRad)).toFloat()
+            // Yuva 0 tam en üstte (12 yönü) başlar: -PI/2
+            val angleRad = (2.0 * PI / count) * index - (PI / 2.0)
+            val xOffsetPx = (radiusPx * cos(angleRad)).toFloat()
+            val yOffsetPx = (radiusPx * sin(angleRad)).toFloat()
 
             val tier = slots[index]
             val isBeingStruck = lightningTargets.contains(index)
@@ -251,9 +240,7 @@ fun CircularBoard(
                 if (tier != null) {
                     Text(
                         text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 16.sp,
-                        // Çark dönerken emojilerin baş aşağı dönmemesi için karşı rotasyon
-                        modifier = Modifier.rotate(-animatedRotation)
+                        fontSize = 24.sp
                     )
                 }
             }
