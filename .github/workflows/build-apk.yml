@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0.0
-          name: "Simya Çemberi v2.0.0 (Kusursuz 8 Yuva & Akıcı Oynanış)"
-          body: "🚀 **BÜYÜK YENİDEN YAPILANDIRMA (v2.0):**\n- Çember sayısı oyun dengesi için ideal olan **8 yuvaya (45° simetri)** çekildi.\n- Ekranda çemberlerin birbirine çarpması veya rastgele kayması KESİNLİKLE kaldırıldı.\n- Sağa basınca saat yönünde, sola basınca ters yönde taşlar kusursuz ve öngörülebilir 1 adım ilerler.\n- Yeni taşlar daima en tepedeki portaldan oyuna girer."
+          tag_name: v2.1.0
+          name: "Simya Çemberi v2.1.0 (Otomatik Güncelleme Desteği)"
+          body: "🚀 **YENİLİKLER (v2.1.0):**\n- **GitHub Otomatik Güncelleme:** Oyun açıldığında yeni sürüm olup olmadığını GitHub üzerinden otomatik kontrol eder.\n- **Tek Tıkla APK Kurulumu:** Uygulama içinden indirme çubuğuyla doğrudan en son sürüme güncellenir.\n- **8 Yuvalı Dengeli Mekanik:** 45° hassas aralıklı daireler, öngörülebilir 1 adımlı kaydırma ve şarjlı Yıldırım Kazanı."
           files: SimyaCemberi.apk
           prerelease: false
         env:

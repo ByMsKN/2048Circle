@@ -19,6 +19,7 @@ import com.alchemist.circle.model.GameState
 import com.alchemist.circle.model.MoveDirection
 import com.alchemist.circle.ui.components.CircularBoard
 import com.alchemist.circle.viewmodel.AlchemyCircleViewModel
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 @Composable
@@ -27,6 +28,22 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
 
     var totalDragX by remember { mutableStateOf(0f) }
     val dragThreshold = 45f
+
+    // GÜNCELLEME KONTROLÜ
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var updateInfo by remember { mutableStateOf<com.alchemist.circle.data.UpdateManager.UpdateInfo?>(null) }
+    var isDownloading by remember { mutableStateOf(false) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val update = com.alchemist.circle.data.UpdateManager.checkForUpdates()
+        if (update != null) {
+            updateInfo = update
+            showUpdateDialog = true
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -88,6 +105,78 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
                 state = state,
                 onRotateLeft = { viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE) },
                 onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) }
+            )
+        }
+
+        // GÜNCELLEME DİYALOĞU
+        if (showUpdateDialog && updateInfo != null) {
+            val info = updateInfo!!
+            AlertDialog(
+                onDismissRequest = { if (!isDownloading) showUpdateDialog = false },
+                containerColor = Color(0xFF28114B),
+                title = {
+                    Text("🚀 Yeni Güncelleme: ${info.newVersionTag}", color = Color(0xFFFFEB3B), fontSize = 20.sp, fontWeight = FontWeight.Black)
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = info.releaseNotes,
+                            color = Color(0xFFE1BEE7),
+                            fontSize = 14.sp
+                        )
+                        if (isDownloading) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "İndiriliyor: %${(downloadProgress * 100).toInt()}",
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            LinearProgressIndicator(
+                                progress = { downloadProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = Color(0xFF00E676),
+                                trackColor = Color(0xFF38235F)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    if (!isDownloading) {
+                        Button(
+                            onClick = {
+                                isDownloading = true
+                                coroutineScope.launch {
+                                    val apk = com.alchemist.circle.data.UpdateManager.downloadApk(
+                                        context = context,
+                                        downloadUrl = info.downloadUrl,
+                                        onProgress = { progress ->
+                                            downloadProgress = progress
+                                        }
+                                    )
+                                    isDownloading = false
+                                    if (apk != null) {
+                                        com.alchemist.circle.data.UpdateManager.installApk(context, apk)
+                                    }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Text("⚡ Şimdi Güncelle", color = Color(0xFF003300), fontWeight = FontWeight.Black)
+                        }
+                    }
+                },
+                dismissButton = {
+                    if (!isDownloading) {
+                        TextButton(onClick = { showUpdateDialog = false }) {
+                            Text("Daha Sonra", color = Color(0xFFB39DDB))
+                        }
+                    }
+                }
             )
         }
 
