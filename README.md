@@ -1,24 +1,26 @@
-# Simya Çemberi (Circle of Alchemy) 🌌🔮
+# 2048 Çemberi (Circular 2048) 🌀✨
 
-Klasik 2048 bulmaca mekaniğini dairesel formata taşıyan, Jetpack Compose ile sıfırdan geliştirilmiş modern bir Android oyunu.
+Klasik 2048 bulmaca heyecanını dairesel ve dinamik bir geometriye taşıyan, Jetpack Compose ile sıfırdan geliştirilmiş modern bir Android oyunu.
 
-## 🎮 Oyun Özellikleri
-- **Dairesel Yörünge:** 8 adet dairesel yuva üzerinde trigonometrik yerleşim ve akıcı rotasyon animasyonları.
-- **Simya Elementleri:**
-  - 💧 2: Su
-  - 💨 4: Buhar
-  - ☁️ 8: Bulut
-  - ⚡ 16: Enerji
-  - 🔥 32: Plazma
-  - ✨ 64: Yıldız
-  - 🌌 128: Evren
-  - 💎 256: Elmas
-- **Hareketler:** Sağa/Sola sürükleme (Swipe jesti) veya ekran altındaki butonlar.
-- **Atom Çekici (Joker Gücü):** Başarılı birleştirmelerle dolar; %100 olduğunda çemberdeki istenmeyen bir elementi yok etmenizi sağlar.
-- **En Yüksek Skor:** Cihazda kalıcı olarak saklanır (SharedPreferences).
+---
 
-## 🚀 APK İndirme ve Yükleme
-Bu repo GitHub'a yüklendiğinde **GitHub Actions** otomatik olarak Debug APK üretir:
-1. GitHub reponuzda **Actions** sekmesine gidin.
-2. En son çalışan **Android Build & Release APK** işine tıklayın.
-3. **Artifacts** bölümünden `SimyaCemberi-Debug-APK` dosyasını telefonunuza indirip kurabilirsiniz!
+## 🎮 Oyun Kuralları ve Mekaniği
+- **Dairesel 2048 Düzeni:** 
+  - Gözü yormayan, sade ve ferah dairesel yuvalar.
+  - Klasik 2048 sayı blokları: **2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 ve 2048**.
+- **Akıcı ve Öngörülebilir Hareketler:**
+  - Sağa / Sola kaydırarak çemberi saat yönünde veya tersinde çevirin.
+  - Aynı sayıdaki iki taş yan yana geldiğinde toplanarak bir üst sayıya birleşir (2 + 2 = 4, 4 + 4 = 8 ...).
+- **Merkez Güç Kazanı (Joker Kurtarıcı):**
+  - Sayıları birleştirdikçe merkezdeki kazan şarj olur.
+  - %100 dolduğunda tahtadaki rastgele 2 taşı temizleyerek hamle alanı açar.
+- **Uygulama İçi Otomatik Güncelleme:**
+  - GitHub Releases üzerinden yeni bir sürüm çıktığında oyun bunu otomatik olarak algılar ve tek dokunuşla güncellenir. Uygulama güncel olduğunda ise hiçbir bildirim veya buton rahatsız etmez.
+
+---
+
+## 🚀 APK İndirme
+- En güncel APK sürümünü doğrudan indirmek için:
+  👉 **[Son Sürüm SimyaCemberi.apk İndir](https://github.com/ByMsKN/2048Circle/releases/latest/download/SimyaCemberi.apk)**
+- Tüm sürümleri ve güncelleme geçmişini incelemek için:
+  👉 **[GitHub Releases Sayfası](https://github.com/ByMsKN/2048Circle/releases)**
