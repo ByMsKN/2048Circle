@@ -77,13 +77,9 @@ fun CircularBoard(
         // --- 360 DERECE MÜKEMMEL GEOMETRİ HESAPLAMASI ---
         // 10 adet daire 360 dereceye 36° (2*PI/10) aralıklarla tam eşit dağıtılır.
         // Yarıçap (radiusPx) = %39
-        // Daire yuva boyutu (slotSize) = %15.5 (~56dp)
-        // İki daire merkezi arası kord uzunluğu = 2 * R * sin(18°) = 2 * 0.39 * 0.309 ≈ 0.241 * sizePx
-        // İki dairenin çapı = 0.155 * sizePx
-        // İki çember arasındaki net boşluk = 0.241 - 0.155 = 0.086 * sizePx (~32dp net tertemiz boşluk!)
-        // Asla birbirine temas etmez, ekranı tam doldurur ve emojiler devasa/okunaklı olur!
+        // Daire yuva boyutu (slotSize) = YARIYA DÜŞÜRÜLDÜ: %7.8 (~28-30dp)
         val radiusPx = sizePx * 0.39f
-        val slotSize = (sizePx * 0.155f).dp
+        val slotSize = (sizePx * 0.078f).dp
         val count = slots.size
 
         // 1. NEŞELİ SİHİR RAYI VE YILDIRIM EFEKTLERİ CANVAS
@@ -248,7 +244,7 @@ fun CircularBoard(
                 if (tier != null) {
                     Text(
                         text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 28.sp, // Büyütülmüş ferah emoji boyutu
+                        fontSize = 16.sp, // Yarıya düşen çember çapına mükemmel oturan emoji boyutu
                         // Çember dönerken ikonların baş aşağı olmaması için dik tutma karşı rotasyonu
                         modifier = Modifier.rotate(-animatedRotation)
                     )
