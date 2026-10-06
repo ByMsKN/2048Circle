@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: "Simya Çemberi v1.1.0 (10 Daire & Güç Kazanı)"
-          body: "⚡ **Yenilikler:**\n- 10 adet dairesel yuva (ferah aralıklarla, iç içe geçmeyen yerleşim)\n- Başlangıçta tam 2 adet dolu çember\n- Merkezde birleştirmelerle dolan **Güç Kazanı (Cauldron)**\n- Kazan %100 dolduğunda çıkan **Yıldırım Fırtınası** (Rastgele 2 dolu çemberi yok ederek alan açar)"
+          tag_name: v1.2.0
+          name: "Simya Çemberi v1.2.0 (Canlı Renkler & Kesintisiz Dairesel Akış)"
+          body: "🎨 **Yenilikler:**\n- 10 daire arasında geniş boşluklar (kesinlikle temas etmez)\n- Çevirme yönüne göre yuvalar arasında gerçek akış (rastgele yeniden dizilme kaldırıldı)\n- Büyütülmüş sevimli emojiler ve rengarenk şeker temalı arayüz\n- Güç Kazanı dolduğunda 2 alanı temizleyen yıldırım efekti"
           files: SimyaCemberi.apk
           prerelease: false
         env:

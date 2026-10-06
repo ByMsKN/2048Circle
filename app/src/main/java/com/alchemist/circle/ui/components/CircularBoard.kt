@@ -12,8 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -29,27 +29,31 @@ import kotlin.math.*
 @Composable
 fun CircularBoard(
     slots: List<ElementTier?>,
-    rotationAngle: Float,
     cauldronCharge: Float,
     lightningTargets: List<Int>,
     modifier: Modifier = Modifier
 ) {
-    val animatedRotation by animateFloatAsState(
-        targetValue = rotationAngle,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "BoardRotation"
-    )
-
-    // Kazan doluluğu ve yıldırım için nabız (pulse) efekti
+    // Güç kazanı ve yıldırım için neşeli nabız (pulse) efekti
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.95f,
-        targetValue = 1.05f,
+        targetValue = 1.08f,
         animationSpec = infiniteRepeatable(
-            animation = tween(600, easing = FastOutSlowInEasing),
+            animation = tween(500, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseScale"
+    )
+
+    // Arka plan sihirli ışıltısı
+    val magicGlow by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "magicGlow"
     )
 
     BoxWithConstraints(
@@ -57,121 +61,133 @@ fun CircularBoard(
         contentAlignment = Alignment.Center
     ) {
         val sizePx = constraints.maxWidth.coerceAtMost(constraints.maxHeight).toFloat()
-        // 10 dairenin birbirine çarpmaması için ideal oranlar:
-        // Yarıçap: %40, Daire boyutu: %14 (Çapı ~48-52dp)
-        // Çevre = 2 * PI * R ≈ 2.5 * sizePx. 10 daire toplamda ~1.4 * sizePx kaplar -> Boşluklar ferah kalır!
-        val radiusPx = sizePx * 0.40f
-        val slotSize = (sizePx * 0.14f).dp
+        // Matematiksel kesinlik:
+        // Yarıçap (radiusPx): %41
+        // Daire yuva boyutu (slotSize): %11 (~40dp)
+        // Çember çevresi (2 * PI * R) ≈ 2.57 * sizePx.
+        // 10 daire toplamda: 10 * 0.11 = 1.10 * sizePx kaplar.
+        // Kalan boşluk: 1.47 * sizePx!
+        // Daireler arasında çaplarının 1.3 katı kadar bol ve ferah BOŞLUK kalır, KESİNLİKLE BİRBİRİNE DEĞMEZ!
+        val radiusPx = sizePx * 0.41f
+        val slotSize = (sizePx * 0.11f).dp
+        val count = slots.size
 
-        // 1. ARKA PLAN YÖRÜNGESİ & YILDIRIM EFEKTLERİ CANVAS
+        // 1. NEŞELİ SİHİR RAYI VE YILDIRIM EFEKTLERİ CANVAS
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
 
-            // Dış atmosferik gölge
+            // Tatlı sihirli renkli arka plan halesi
             drawCircle(
                 brush = Brush.radialGradient(
-                    colors = listOf(Color(0xFF2E1A47).copy(alpha = 0.4f), Color.Transparent),
+                    colors = listOf(
+                        Color(0xFF7C4DFF).copy(alpha = magicGlow * 0.35f),
+                        Color(0xFFFF4081).copy(alpha = magicGlow * 0.15f),
+                        Color.Transparent
+                    ),
                     center = center,
-                    radius = radiusPx * 1.25f
+                    radius = radiusPx * 1.35f
                 ),
-                radius = radiusPx * 1.25f,
+                radius = radiusPx * 1.35f,
                 center = center
             )
 
-            // Ana Yörünge Rayı
+            // Renkli Neon Yörünge Rayı (Candy Track)
             drawCircle(
-                color = Color(0xFF673AB7).copy(alpha = 0.35f),
+                color = Color(0xFFFFD54F).copy(alpha = 0.45f),
                 radius = radiusPx,
                 center = center,
-                style = Stroke(width = 3.dp.toPx())
+                style = Stroke(width = 4.dp.toPx())
             )
 
-            // YILDIRIM ÇİZGİLERİ: Merkezden hedeflere elektrik arkları
+            // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere renkli elektrik arkları
             if (lightningTargets.isNotEmpty()) {
-                val count = slots.size
                 lightningTargets.forEach { targetIndex ->
-                    val baseAngleRad = (2.0 * PI / count) * targetIndex
-                    val totalAngleRad = baseAngleRad + Math.toRadians(animatedRotation.toDouble())
-                    val targetX = (radiusPx * cos(totalAngleRad)).toFloat() + center.x
-                    val targetY = (radiusPx * sin(totalAngleRad)).toFloat() + center.y
+                    val angleRad = (2.0 * PI / count) * targetIndex
+                    val targetX = (radiusPx * cos(angleRad)).toFloat() + center.x
+                    val targetY = (radiusPx * sin(angleRad)).toFloat() + center.y
 
-                    // Zikzak yıldırım yolu
                     val lightningPath = Path().apply {
                         moveTo(center.x, center.y)
-                        val midX1 = center.x + (targetX - center.x) * 0.33f + ((-15..15).random())
-                        val midY1 = center.y + (targetY - center.y) * 0.33f + ((-15..15).random())
-                        val midX2 = center.x + (targetX - center.x) * 0.66f + ((-15..15).random())
-                        val midY2 = center.y + (targetY - center.y) * 0.66f + ((-15..15).random())
+                        val midX1 = center.x + (targetX - center.x) * 0.35f + ((-18..18).random())
+                        val midY1 = center.y + (targetY - center.y) * 0.35f + ((-18..18).random())
+                        val midX2 = center.x + (targetX - center.x) * 0.70f + ((-18..18).random())
+                        val midY2 = center.y + (targetY - center.y) * 0.70f + ((-18..18).random())
                         lineTo(midX1, midY1)
                         lineTo(midX2, midY2)
                         lineTo(targetX, targetY)
                     }
 
-                    // Dış mavi/mor elektrik halesi
+                    // Dış elektrik halesi (Sarı/Camgöbeği)
                     drawPath(
                         path = lightningPath,
-                        color = Color(0xFF00E5FF),
-                        style = Stroke(width = 6.dp.toPx())
+                        color = Color(0xFFFFEB3B),
+                        style = Stroke(width = 8.dp.toPx())
                     )
-                    // İç beyaz çekirdek yıldırım
+                    // İç parlak beyaz çekirdek
                     drawPath(
                         path = lightningPath,
                         color = Color.White,
-                        style = Stroke(width = 2.5.dp.toPx())
+                        style = Stroke(width = 3.5.dp.toPx())
                     )
                 }
             }
         }
 
-        // 2. MERKEZDEKİ GÜÇ KAZANI (Cauldron)
-        val cauldronSize = (sizePx * 0.28f).dp
+        // 2. ORTADAKİ RENKLİ GÜÇ KAZANI (Candy Magic Cauldron)
+        val cauldronSize = (sizePx * 0.29f).dp
         Box(
             modifier = Modifier
                 .size(cauldronSize)
                 .scale(if (cauldronCharge >= 1.0f) pulseScale else 1f)
+                .shadow(
+                    elevation = if (cauldronCharge >= 1.0f) 16.dp else 6.dp,
+                    shape = CircleShape,
+                    spotColor = Color(0xFFFFEB3B)
+                )
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
                         colors = if (cauldronCharge >= 1.0f) {
-                            listOf(Color(0xFF00E5FF), Color(0xFF651FFF), Color(0xFF1A0A3A))
+                            listOf(Color(0xFFFFEB3B), Color(0xFFFF4081), Color(0xFF651FFF))
                         } else {
                             listOf(
-                                Color(0xFFFFD54F).copy(alpha = 0.2f + cauldronCharge * 0.6f),
-                                Color(0xFF311B92).copy(alpha = 0.8f),
-                                Color(0xFF130924)
+                                Color(0xFFFF80AB).copy(alpha = 0.4f + cauldronCharge * 0.6f),
+                                Color(0xFF4A148C),
+                                Color(0xFF1A0933)
                             )
                         }
                     )
                 )
                 .border(
-                    width = if (cauldronCharge >= 1.0f) 3.5.dp else 2.dp,
-                    color = if (cauldronCharge >= 1.0f) Color(0xFF00E5FF) else Color(0xFFFFD54F).copy(alpha = 0.4f + cauldronCharge * 0.6f),
+                    width = if (cauldronCharge >= 1.0f) 4.dp else 2.5.dp,
+                    color = if (cauldronCharge >= 1.0f) Color(0xFFFFEB3B) else Color(0xFFFF80AB),
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    text = if (cauldronCharge >= 1.0f) "⚡" else "🔮",
-                    fontSize = 28.sp
+                    text = if (cauldronCharge >= 1.0f) "⚡" else "🧪",
+                    fontSize = 32.sp
                 )
                 Text(
                     text = "${(cauldronCharge * 100).toInt()}%",
-                    color = if (cauldronCharge >= 1.0f) Color(0xFF00E5FF) else Color(0xFFFFD54F),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold
                 )
             }
         }
 
-        // 3. YÖRÜNGEDEKİ 10 ADET YUVA (SLOT)
-        val count = slots.size
+        // 3. YÖRÜNGEDEKİ 10 ADET YUVA (BÜYÜK İKONLAR & PARLAK RENKLER)
         for (index in 0 until count) {
-            val baseAngleRad = (2.0 * PI / count) * index
-            val totalAngleRad = baseAngleRad + Math.toRadians(animatedRotation.toDouble())
-
-            val xOffsetPx = (radiusPx * cos(totalAngleRad)).toFloat()
-            val yOffsetPx = (radiusPx * sin(totalAngleRad)).toFloat()
+            // Sabit trigonometrik yuva konumu: taşlar dönme yönünde yuvalar arasında hareket eder!
+            val angleRad = (2.0 * PI / count) * index
+            val xOffsetPx = (radiusPx * cos(angleRad)).toFloat()
+            val yOffsetPx = (radiusPx * sin(angleRad)).toFloat()
 
             val tier = slots[index]
             val isBeingStruck = lightningTargets.contains(index)
@@ -180,31 +196,35 @@ fun CircularBoard(
                 modifier = Modifier
                     .offset { IntOffset(xOffsetPx.roundToInt(), yOffsetPx.roundToInt()) }
                     .size(slotSize)
-                    .scale(if (isBeingStruck) 1.25f else 1f)
-                    .clip(CircleShape)
-                    .background(
-                        when {
-                            isBeingStruck -> Color(0xFF00E5FF) // Yıldırım çarptığında parıldasın
-                            tier != null -> tier.color.copy(alpha = 0.9f)
-                            else -> Color(0xFF1E1B2E).copy(alpha = 0.65f)
-                        }
-                    )
-                    .border(
-                        width = if (isBeingStruck) 3.5.dp else 1.5.dp,
-                        color = when {
-                            isBeingStruck -> Color.White
-                            tier != null -> tier.glowColor
-                            else -> Color(0xFF433D61)
-                        },
-                        shape = CircleShape
-                    ),
+                    .scale(if (isBeingStruck) 1.3f else if (tier != null) 1.05f else 1f)
+                .shadow(
+                    elevation = if (tier != null) 8.dp else 0.dp,
+                    shape = CircleShape,
+                    spotColor = tier?.color ?: Color.Transparent
+                )
+                .clip(CircleShape)
+                .background(
+                    when {
+                        isBeingStruck -> Color(0xFFFFEB3B)
+                        tier != null -> tier.color
+                        else -> Color(0xFF261D42).copy(alpha = 0.7f)
+                    }
+                )
+                .border(
+                    width = if (isBeingStruck) 3.5.dp else if (tier != null) 2.5.dp else 1.2.dp,
+                    color = when {
+                        isBeingStruck -> Color.White
+                        tier != null -> tier.borderColor
+                        else -> Color(0xFF4C3E75)
+                    },
+                    shape = CircleShape
+                ),
                 contentAlignment = Alignment.Center
             ) {
                 if (tier != null) {
                     Text(
                         text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 20.sp,
-                        modifier = Modifier.rotate(-animatedRotation)
+                        fontSize = 24.sp // Büyütülmüş canlı emoji boyutu
                     )
                 }
             }

@@ -7,16 +7,16 @@ enum class ElementTier(
     val symbol: String,
     val title: String,
     val color: Color,
-    val glowColor: Color
+    val borderColor: Color
 ) {
-    WATER(2, "💧", "Su", Color(0xFF1E88E5), Color(0x6642A5F5)),
-    STEAM(4, "💨", "Buhar", Color(0xFF26A69A), Color(0x6680CBC4)),
-    CLOUD(8, "☁️", "Bulut", Color(0xFF78909C), Color(0x66B0BEC5)),
-    ENERGY(16, "⚡", "Enerji", Color(0xFFFFB300), Color(0x66FFE082)),
-    PLASMA(32, "🔥", "Plazma", Color(0xFFE64A19), Color(0x66FF8A65)),
-    STAR(64, "✨", "Yıldız", Color(0xFF8E24AA), Color(0x66BA68C8)),
-    UNIVERSE(128, "🌌", "Evren", Color(0xFF3949AB), Color(0x667986CB)),
-    DIAMOND(256, "💎", "Elmas", Color(0xFF00ACC1), Color(0x664DD0E1));
+    WATER(2, "💧", "Su", Color(0xFF00B0FF), Color(0xFF80D8FF)),
+    STEAM(4, "💨", "Buhar", Color(0xFF00E676), Color(0xFFB9F6CA)),
+    CLOUD(8, "☁️", "Bulut", Color(0xFFFFD600), Color(0xFFFFFF8D)),
+    ENERGY(16, "⚡", "Enerji", Color(0xFFFF9100), Color(0xFFFFD180)),
+    PLASMA(32, "🔥", "Ateş", Color(0xFFFF3D00), Color(0xFFFF9E80)),
+    STAR(64, "⭐", "Yıldız", Color(0xFFFF1744), Color(0xFFFF80AB)),
+    UNIVERSE(128, "🌈", "Gökkuşağı", Color(0xFFD500F9), Color(0xFFEA80FC)),
+    DIAMOND(256, "👑", "Taç", Color(0xFFAA00FF), Color(0xFFE040FB));
 
     fun nextTier(): ElementTier? {
         val nextIndex = ordinal + 1
