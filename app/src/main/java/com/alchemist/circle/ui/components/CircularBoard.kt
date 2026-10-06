@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -29,10 +30,22 @@ import kotlin.math.*
 @Composable
 fun CircularBoard(
     slots: List<ElementTier?>,
+    rotationAngle: Float,
     cauldronCharge: Float,
     lightningTargets: List<Int>,
     modifier: Modifier = Modifier
 ) {
+    // 1. FİZİKSEL ÇARK DÖNÜŞ ANİMASYONU:
+    // Kullanıcı çevirdiğinde tüm yörünge akıcı bir şekilde yeni yuvasına döner!
+    val animatedRotation by animateFloatAsState(
+        targetValue = rotationAngle,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "WheelPhysicalRotation"
+    )
+
     // Güç kazanı için nabız efekti
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -62,11 +75,9 @@ fun CircularBoard(
     ) {
         val sizePx = constraints.maxWidth.coerceAtMost(constraints.maxHeight).toFloat()
         
-        // 360 DERECE SABİT VE DÜZENLİ GEOMETRİ:
+        // Geometri:
         // Yarıçap (radiusPx) = %39
         // Yuva boyutu (slotSize) = %7.8 (~28-30dp)
-        // Her yuva saat kadranı gibi tam 36° aralıklarla SABİT yuvalara yerleştirilir.
-        // Kullanıcı çevirdikçe taşlar bu sabit yuvalar üzerinde 1 adım ileri kayar!
         val radiusPx = sizePx * 0.39f
         val slotSize = (sizePx * 0.078f).dp
         val count = slots.size
@@ -106,6 +117,15 @@ fun CircularBoard(
                 style = Stroke(width = 2.dp.toPx())
             )
 
+            // Üst Portal İşareti (Yeni Taş Giriş Kapısı):
+            // En tepede küçük tatlı bir yıldız/portal ışıltısı
+            val portalY = center.y - radiusPx
+            drawCircle(
+                color = Color(0xFF00E5FF).copy(alpha = 0.6f),
+                radius = 8.dp.toPx(),
+                center = Offset(center.x, portalY)
+            )
+
             // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere elektrik arkları
             if (lightningTargets.isNotEmpty()) {
                 lightningTargets.forEach { targetIndex ->
@@ -124,13 +144,11 @@ fun CircularBoard(
                         lineTo(targetX, targetY)
                     }
 
-                    // Dış sarı elektrik halesi
                     drawPath(
                         path = lightningPath,
                         color = Color(0xFFFFEB3B),
                         style = Stroke(width = 8.dp.toPx())
                     )
-                    // İç beyaz çekirdek yıldırım
                     drawPath(
                         path = lightningPath,
                         color = Color.White,
@@ -189,11 +207,14 @@ fun CircularBoard(
             }
         }
 
-        // 3. 360 DERECE SABİT 10 YUVA (Taşlar bu yuvalar boyunca sırayla 1 adım kayar)
+        // 3. ÇARKLA BİRLİKTE AKICI DÖNEN 10 ADET YUVA
         for (index in 0 until count) {
+            // Açı formülü: 10 eşit parça (36°) + Çarkın akıcı fiziksel dönüşü
             val baseAngleRad = (2.0 * PI / count) * index
-            val xOffsetPx = (radiusPx * cos(baseAngleRad)).toFloat()
-            val yOffsetPx = (radiusPx * sin(baseAngleRad)).toFloat()
+            val totalAngleRad = baseAngleRad + Math.toRadians(animatedRotation.toDouble())
+
+            val xOffsetPx = (radiusPx * cos(totalAngleRad)).toFloat()
+            val yOffsetPx = (radiusPx * sin(totalAngleRad)).toFloat()
 
             val tier = slots[index]
             val isBeingStruck = lightningTargets.contains(index)
@@ -230,7 +251,9 @@ fun CircularBoard(
                 if (tier != null) {
                     Text(
                         text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        // Çark dönerken emojilerin baş aşağı dönmemesi için karşı rotasyon
+                        modifier = Modifier.rotate(-animatedRotation)
                     )
                 }
             }

@@ -77,6 +77,7 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             ) {
                 CircularBoard(
                     slots = state.slots,
+                    rotationAngle = state.rotationAngleDegrees,
                     cauldronCharge = state.cauldronCharge,
                     lightningTargets = state.lightningTargets,
                     modifier = Modifier.size(370.dp)

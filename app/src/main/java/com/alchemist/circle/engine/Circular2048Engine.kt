@@ -13,17 +13,21 @@ class Circular2048Engine {
     )
 
     /**
-     * DÜZGÜN VE KONTROL EDİLEBİLİR 1 ADIMLIK DÖNDÜRME MEKANİĞİ:
-     * Kullanıcı sağa veya sola çevirdiğinde:
-     * Her taş SADECE 1 ADIM döndürme yönüne ilerler.
+     * KULLANICININ TAM KONTROLÜNDE OLAN DÖNDÜRME MEKANİĞİ:
      * 
-     * Saat Yönü (CLOCKWISE):
-     * Taş yuva i'den yuva (i + 1) % n'e gider.
-     * Eğer hedef yuva boşsa -> Taş oraya yerleşir.
-     * Eğer hedef yuvadaki taş ile aynı değere sahipse -> BİRLEŞİR!
+     * Saat yönünde (CLOCKWISE) çevrildiğinde:
+     * - Yuva 0 -> Yuva 1'e gider
+     * - Yuva 1 -> Yuva 2'ye gider
+     * - ...
+     * - Yuva 9 -> Yuva 0'a gider.
      * 
-     * Saat Yönünün Tersi (COUNTER_CLOCKWISE):
-     * Taş yuva i'den yuva (i - 1 + n) % n'e gider.
+     * Saat yönünün tersine (COUNTER_CLOCKWISE) çevrildiğinde:
+     * - Yuva 1 -> Yuva 0'a gider
+     * - Yuva 0 -> Yuva 9'a gider.
+     * 
+     * Birleşme Kuralı:
+     * Eğer iki komşu taş aynıysa ve hareket yönünde birbirlerine doğru dönüyorlarsa,
+     * hedef yuvada bir üst elemente evrilirler!
      */
     fun processMove(slots: List<ElementTier?>, direction: MoveDirection): TurnResult {
         val n = slots.size
@@ -32,18 +36,19 @@ class Circular2048Engine {
 
         val step = if (direction == MoveDirection.CLOCKWISE) 1 else -1
 
-        // 1 Adım döndürülmüş yeni liste
+        // 1. Her taş yön doğrultusunda tam 1 yuva ilerler:
         val rotated = MutableList<ElementTier?>(n) { null }
         for (i in 0 until n) {
             val targetIdx = (i + step + n) % n
             rotated[targetIdx] = slots[i]
         }
 
-        // 1 Adım ilerleme sonrası komşu olan aynı taşların birleşmesi:
+        // 2. Birleşme kontrolü:
+        // Eğer hareket sonrasında komşu olan iki taş aynı değere sahipse,
+        // hareketin vardığı öndeki yuvada birleşirler!
         val result = rotated.toMutableList()
         val merged = BooleanArray(n) { false }
 
-        // Birleşme kontrolü (hareket yönüne göre)
         for (k in 0 until n) {
             val i = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
             val nextIdx = (i + step + n) % n
@@ -67,16 +72,27 @@ class Circular2048Engine {
     }
 
     /**
-     * Yeni element ekleme:
-     * Kullanıcı çemberi döndürdüğünde, taşların boşalttığı / arkada bıraktığı
-     * en mantıklı boş yuvaya (%85 Su - 2, %15 Buhar - 4) eklenir.
+     * SABİT VE ÖNGÖRÜLEBİLİR YENİ ELEMENT DOĞMA NOKTASI:
+     * Yeni taşlar rastgele bir yere ışınlanmaz!
+     * Döndürme yapıldığında, hareketin başlangıç noktasına (kuyruğuna) yeni taş girer.
+     * 
+     * Saat yönünde çevrildiğinde: Taşlar 0 -> 1 -> 2 diye aktığı için,
+     * en tepedeki Yuva 0 boşalır ve yeni taş Yuva 0'dan oyuna girer.
+     * Eğer Yuva 0 doluysa, en yakın boş komşu yuvadan girer.
      */
-    fun spawnNewElement(slots: List<ElementTier?>, direction: MoveDirection): List<ElementTier?> {
+    fun spawnNewElementAtPortal(slots: List<ElementTier?>, direction: MoveDirection): List<ElementTier?> {
         val emptyIndices = slots.indices.filter { slots[it] == null }
         if (emptyIndices.isEmpty()) return slots
 
-        // Dönüş yönünün arkasında kalan boş bir yuva seç (öngörülebilir stratejik spawn)
-        val targetIndex = emptyIndices.random()
+        // Sabit portal girişi: Saat yönünde Yuva 0 (en tepe), Ters yönde Yuva 9
+        val preferredPortal = if (direction == MoveDirection.CLOCKWISE) 0 else (slots.size - 1)
+        val targetIndex = if (slots[preferredPortal] == null) {
+            preferredPortal
+        } else {
+            // Tercih edilen portal doluysa boş olan en yakın yuvaya yerleştir
+            emptyIndices.minByOrNull { Math.abs(it - preferredPortal) } ?: emptyIndices.first()
+        }
+
         val spawnedTier = if (Random.nextFloat() < 0.85f) ElementTier.WATER else ElementTier.STEAM
 
         return slots.toMutableList().apply {
@@ -86,7 +102,6 @@ class Circular2048Engine {
 
     /**
      * Oyun sonu kontrolü:
-     * Boş yuva kalmadığında ve hiçbir komşu birleşemediğinde oyun biter.
      */
     fun isGameOver(slots: List<ElementTier?>): Boolean {
         if (slots.any { it == null }) return false
