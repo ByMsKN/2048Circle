@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v3.0.0
-          name: "2048 Çemberi v3.0.0 (Gerçek Dairesel 2048 Deneyimi)"
-          body: "🎉 **2048 ÇEMBERİ (v3.0.0):**\n- **3 Eşmerkezli Halka (İç, Orta, Dış):** Toplam 24 yuva ile tam dairesel 2048 geometrisi.\n- **4 Yönlü Hamle:** Sağa ve Sola döndürme (çember yörüngesi), İçe ve Dışa kaydırma (radyal eksen).\n- **Klasik 2048 Sayıları:** 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024 ve 2048 sayı blokları.\n- **Güç Kazanı Jokeri:** Birleşmelerle şarj olan merkez kazan, %100 olduğunda 2 taş temizleyerek alan açar.\n- **GitHub Otomatik Güncelleme:** Uygulama içinden tek tıkla güncelleme."
+          tag_name: v3.1.0
+          name: "2048 Çemberi v3.1.0 (Sade, Ferah & Akıcı Tek Çember)"
+          body: "🎉 **2048 ÇEMBERİ (v3.1.0):**\n- **Tek Çember (8 Ferah Yuva):** 3 halka karmaşası kaldırıldı; göz yormayan, son derece net ve sade tek çember tasarımına geçildi.\n- **Kolay ve Akıcı Oynanış:** Sağa veya Sola kaydırarak (veya 2 büyük butonla) taşları çevirin ve aynı sayıları birleştirin.\n- **Büyük 2048 Sayı Taşları:** 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048.\n- **Şarjlı Güç Kazanı:** %100 dolduğunda 2 taşı temizleyerek alan açar.\n- **Akıllı Otomatik Güncelleme:** Uygulama güncelse hiçbir bildirim/buton çıkmaz."
           files: SimyaCemberi.apk
           prerelease: false
         env:

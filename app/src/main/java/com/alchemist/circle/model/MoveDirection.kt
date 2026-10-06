@@ -1,8 +1,6 @@
 package com.alchemist.circle.model
 
 enum class MoveDirection {
-    CLOCKWISE,          // Sağa / Saat yönüne döndür
-    COUNTER_CLOCKWISE,  // Sola / Ters yöne döndür
-    INWARD,             // Merkeze / İçe doğru kaydır
-    OUTWARD             // Dışa doğru kaydır
+    CLOCKWISE,          // Sağa / Saat yönüne çevir
+    COUNTER_CLOCKWISE   // Sola / Ters yöne çevir
 }

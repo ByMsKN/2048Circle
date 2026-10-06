@@ -27,7 +27,6 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
     val state by viewModel.uiState.collectAsState()
 
     var dragAmountX by remember { mutableStateOf(0f) }
-    var dragAmountY by remember { mutableStateOf(0f) }
     val dragThreshold = 40f
 
     // GÜNCELLEME KONTROLÜ
@@ -60,34 +59,17 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             )
             .pointerInput(Unit) {
                 detectDragGestures(
-                    onDragStart = {
-                        dragAmountX = 0f
-                        dragAmountY = 0f
-                    },
+                    onDragStart = { dragAmountX = 0f },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         dragAmountX += dragAmount.x
-                        dragAmountY += dragAmount.y
                     },
                     onDragEnd = {
-                        val absX = abs(dragAmountX)
-                        val absY = abs(dragAmountY)
-
-                        if (absX > dragThreshold || absY > dragThreshold) {
-                            if (absX > absY) {
-                                // Yatay Kaydırma: Sağa (Saat Yönü) veya Sola (Ters Yön)
-                                if (dragAmountX > 0) {
-                                    viewModel.makeMove(MoveDirection.CLOCKWISE)
-                                } else {
-                                    viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE)
-                                }
+                        if (abs(dragAmountX) > dragThreshold) {
+                            if (dragAmountX > 0) {
+                                viewModel.makeMove(MoveDirection.CLOCKWISE)
                             } else {
-                                // Dikey Kaydırma: Aşağı (Merkeze / İçe) veya Yukarı (Dışa)
-                                if (dragAmountY > 0) {
-                                    viewModel.makeMove(MoveDirection.INWARD)
-                                } else {
-                                    viewModel.makeMove(MoveDirection.OUTWARD)
-                                }
+                                viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE)
                             }
                         }
                     }
@@ -103,7 +85,7 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             // 1. ÜST PANEL: 2048 Çember Başlığı ve Skor Kartları
             HeaderSection(state = state)
 
-            // 2. ORTA ALAN: 3 Eşmerkezli Halka (İç, Orta, Dış) + Güç Kazanı
+            // 2. ORTA ALAN: Ferah 8 Yuvalı 2048 Çemberi + Güç Kazanı
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -118,13 +100,11 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
                 )
             }
 
-            // 3. ALT ALAN: Güç Durumu ve 4 Yönlü Kontrol Butonları
+            // 3. ALT ALAN: Güç Durumu ve 2 Büyük Çevirme Butonu
             ControlsSection(
                 state = state,
                 onRotateLeft = { viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE) },
-                onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) },
-                onMoveInward = { viewModel.makeMove(MoveDirection.INWARD) },
-                onMoveOutward = { viewModel.makeMove(MoveDirection.OUTWARD) }
+                onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) }
             )
         }
 
@@ -254,9 +234,7 @@ private fun ScoreBadge(title: String, score: Int, color: Color) {
 private fun ControlsSection(
     state: GameState,
     onRotateLeft: () -> Unit,
-    onRotateRight: () -> Unit,
-    onMoveInward: () -> Unit,
-    onMoveOutward: () -> Unit
+    onRotateRight: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -264,9 +242,9 @@ private fun ControlsSection(
     ) {
         val isReady = state.cauldronCharge >= 1.0f
         Text(
-            text = if (isReady) "⚡ 2048 GÜÇ PATLAMASI: 2 RASTGELE TAŞ TEMİZLENDİ! 💥" else "🧪 2048 Güç Şarjı: %${(state.cauldronCharge * 100).toInt()}",
+            text = if (isReady) "⚡ 2048 GÜÇ PATLAMASI: 2 TAŞ TEMİZLENDİ! 💥" else "🧪 2048 Güç Şarjı: %${(state.cauldronCharge * 100).toInt()}",
             color = if (isReady) Color(0xFFFFEB3B) else Color(0xFFFFD54F),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.ExtraBold
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -280,59 +258,39 @@ private fun ControlsSection(
             trackColor = Color(0xFF38235F),
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // 4 YÖNLÜ DİREKSİYON KONTROL BUTONLARI (Parmağını kaydırmak istemeyenler için pratik)
+        // 2 Büyük, Canlı ve Oynaması Çok Kolay Çevirme Butonu
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceAround
         ) {
             Button(
                 onClick = onRotateLeft,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C4DFF)),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .padding(horizontal = 4.dp)
+                    .width(150.dp)
+                    .height(52.dp)
+                    .shadow(8.dp, RoundedCornerShape(20.dp))
             ) {
-                Text(text = "↺ Sola", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Button(
-                onClick = onMoveInward,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B0FF)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .padding(horizontal = 4.dp)
-            ) {
-                Text(text = "↓ İçe", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Button(
-                onClick = onMoveOutward,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9100)),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .padding(horizontal = 4.dp)
-            ) {
-                Text(text = "↑ Dışa", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(text = "🌀", fontSize = 20.sp)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Sola Çevir", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
 
             Button(
                 onClick = onRotateRight,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4081)),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(20.dp),
                 modifier = Modifier
-                    .weight(1f)
-                    .height(46.dp)
-                    .padding(horizontal = 4.dp)
+                    .width(150.dp)
+                    .height(52.dp)
+                    .shadow(8.dp, RoundedCornerShape(20.dp))
             ) {
-                Text(text = "Sağa ↻", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text("Sağa Çevir", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "🌀", fontSize = 20.sp)
             }
         }
     }

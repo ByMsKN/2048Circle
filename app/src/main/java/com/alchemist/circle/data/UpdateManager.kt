@@ -14,7 +14,7 @@ import java.net.URL
 object UpdateManager {
 
     private const val GITHUB_REPO = "ByMsKN/2048Circle"
-    const val CURRENT_VERSION_TAG = "v3.0.0"
+    const val CURRENT_VERSION_TAG = "v3.1.0"
 
     data class UpdateInfo(
         val newVersionTag: String,
