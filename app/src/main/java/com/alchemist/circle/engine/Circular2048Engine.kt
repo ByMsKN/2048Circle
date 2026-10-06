@@ -25,7 +25,7 @@ class Circular2048Engine {
         var mergedCount = 0
 
         val nonNulls = workingList.filterNotNull().toMutableList()
-        val merged = mutableListOf<ElementTier>()
+        val merged = mutableListOf<ElementTier?>()
         var i = 0
         while (i < nonNulls.size) {
             if (i < nonNulls.size - 1 && nonNulls[i] == nonNulls[i + 1]) {
