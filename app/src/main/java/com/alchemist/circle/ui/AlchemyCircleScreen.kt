@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -26,7 +25,7 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
     val state by viewModel.uiState.collectAsState()
 
     var totalDragX by remember { mutableStateOf(0f) }
-    val dragThreshold = 55f
+    val dragThreshold = 50f
 
     Box(
         modifier = Modifier
@@ -61,8 +60,10 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // 1. ÜST PANEL: Başlık ve Skorlar
             HeaderSection(state = state)
 
+            // 2. ORTA ALAN: 10 Daireli Simya Yörüngesi + Merkezdeki Güç Kazanı
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -72,20 +73,21 @@ fun AlchemyCircleScreen(viewModel: AlchemyCircleViewModel) {
                 CircularBoard(
                     slots = state.slots,
                     rotationAngle = state.rotationAngleDegrees,
-                    isHammerActive = state.isHammerActive,
-                    onSlotClick = { viewModel.onSlotTapped(it) },
-                    modifier = Modifier.size(340.dp)
+                    cauldronCharge = state.cauldronCharge,
+                    lightningTargets = state.lightningTargets,
+                    modifier = Modifier.size(360.dp)
                 )
             }
 
+            // 3. ALT ALAN: Güç Durumu ve Çevirme Kontrolleri
             ControlsSection(
                 state = state,
-                onHammerClick = { viewModel.toggleHammerMode() },
                 onRotateLeft = { viewModel.makeMove(MoveDirection.COUNTER_CLOCKWISE) },
                 onRotateRight = { viewModel.makeMove(MoveDirection.CLOCKWISE) }
             )
         }
 
+        // GAME OVER DİYALOĞU
         if (state.isGameOver) {
             GameOverDialog(
                 score = state.score,
@@ -106,7 +108,7 @@ private fun HeaderSection(state: GameState) {
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 3.sp
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -137,7 +139,6 @@ private fun ScoreBadge(title: String, score: Int) {
 @Composable
 private fun ControlsSection(
     state: GameState,
-    onHammerClick: () -> Unit,
     onRotateLeft: () -> Unit,
     onRotateRight: () -> Unit
 ) {
@@ -145,36 +146,27 @@ private fun ControlsSection(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        val hammerReady = state.hammerCharge >= 1.0f
-        OutlinedButton(
-            onClick = onHammerClick,
-            enabled = hammerReady,
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (state.isHammerActive) Color(0xFFFF1744) else if (hammerReady) Color(0xFF7C4DFF) else Color.Transparent
-            ),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.fillMaxWidth(0.85f)
-        ) {
-            Text(text = "🔨", fontSize = 18.sp)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (state.isHammerActive) "Bir Element Seçin!" else if (hammerReady) "Atom Çekici Hazır!" else "Atom Çekici (%${(state.hammerCharge * 100).toInt()})",
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        // Güç Kazanı İlerleme Çubuğu
+        val isReady = state.cauldronCharge >= 1.0f
+        Text(
+            text = if (isReady) "⚡ YILDIRIM PATLAMASI TETİKLENDİ!" else "🔮 Güç Kazanı: %${(state.cauldronCharge * 100).toInt()}",
+            color = if (isReady) Color(0xFF00E5FF) else Color(0xFFFFD54F),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
-            progress = { state.hammerCharge },
+            progress = { state.cauldronCharge },
             modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .padding(vertical = 6.dp)
+                .fillMaxWidth(0.80f)
                 .height(6.dp),
-            color = Color(0xFFFFD54F),
+            color = if (isReady) Color(0xFF00E5FF) else Color(0xFFFFD54F),
             trackColor = Color(0xFF2D2548),
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
+        // Döndürme Butonları
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround

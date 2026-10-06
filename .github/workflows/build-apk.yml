@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "Simya Çemberi v1.0.0"
-          body: "🌌 **Simya Çemberi (Circle of Alchemy)** Android APK sürümü hazır! Doğrudan telefonunuza `.apk` olarak indirip kurabilirsiniz."
+          tag_name: v1.1.0
+          name: "Simya Çemberi v1.1.0 (10 Daire & Güç Kazanı)"
+          body: "⚡ **Yenilikler:**\n- 10 adet dairesel yuva (ferah aralıklarla, iç içe geçmeyen yerleşim)\n- Başlangıçta tam 2 adet dolu çember\n- Merkezde birleştirmelerle dolan **Güç Kazanı (Cauldron)**\n- Kazan %100 dolduğunda çıkan **Yıldırım Fırtınası** (Rastgele 2 dolu çemberi yok ederek alan açar)"
           files: SimyaCemberi.apk
           prerelease: false
         env:
