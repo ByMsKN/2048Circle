@@ -9,98 +9,74 @@ class Circular2048Engine {
     data class TurnResult(
         val newSlots: List<ElementTier?>,
         val pointsEarned: Int,
-        val mergedCount: Int,
-        val hasChanged: Boolean
+        val mergedCount: Int
     )
 
     /**
-     * Dairesel itme ve birleşme:
-     * Taşlar kendi aralarındaki boşluklar boyunca yön doğrultusunda kayar (rotation shift).
-     * Önündeki boşluklara doğru ilerler, aynı değere rastlarsa birleşir.
-     * Bu sayede taşlar sıfırdan 0. indekse toplanmaz, dairesel yerleri yönün akışına göre kayar!
+     * DÜZGÜN VE KONTROL EDİLEBİLİR 1 ADIMLIK DÖNDÜRME MEKANİĞİ:
+     * Kullanıcı sağa veya sola çevirdiğinde:
+     * Her taş SADECE 1 ADIM döndürme yönüne ilerler.
+     * 
+     * Saat Yönü (CLOCKWISE):
+     * Taş yuva i'den yuva (i + 1) % n'e gider.
+     * Eğer hedef yuva boşsa -> Taş oraya yerleşir.
+     * Eğer hedef yuvadaki taş ile aynı değere sahipse -> BİRLEŞİR!
+     * 
+     * Saat Yönünün Tersi (COUNTER_CLOCKWISE):
+     * Taş yuva i'den yuva (i - 1 + n) % n'e gider.
      */
     fun processMove(slots: List<ElementTier?>, direction: MoveDirection): TurnResult {
         val n = slots.size
-        val current = slots.toMutableList()
         var pointsEarned = 0
         var mergedCount = 0
-        var anyMoved = false
 
-        // Adım 1: Boşluklara doğru dairesel kaydırma (Shift)
-        // Yöne göre komşu yuva indeksi:
-        // CLOCKWISE (Saat yönü): Taş (i) -> (i + 1) % n yönüne doğru akar.
-        // COUNTER_CLOCKWISE: Taş (i) -> (i - 1 + n) % n yönüne doğru akar.
         val step = if (direction == MoveDirection.CLOCKWISE) 1 else -1
 
-        // Taşları boş olan komşu yuvalara doğru it (Bubbling / Shift)
-        for (pass in 0 until n) {
-            var shiftedInPass = false
-            for (k in 0 until n) {
-                val from = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
-                val to = (from + step + n) % n
-
-                if (current[from] != null && current[to] == null) {
-                    current[to] = current[from]
-                    current[from] = null
-                    shiftedInPass = true
-                    anyMoved = true
-                }
-            }
-            if (!shiftedInPass) break
+        // 1 Adım döndürülmüş yeni liste
+        val rotated = MutableList<ElementTier?>(n) { null }
+        for (i in 0 until n) {
+            val targetIdx = (i + step + n) % n
+            rotated[targetIdx] = slots[i]
         }
 
-        // Adım 2: Aynı olan bitişik elementleri hareket yönünde birleştir
-        val mergedIndices = BooleanArray(n) { false }
+        // 1 Adım ilerleme sonrası komşu olan aynı taşların birleşmesi:
+        val result = rotated.toMutableList()
+        val merged = BooleanArray(n) { false }
+
+        // Birleşme kontrolü (hareket yönüne göre)
         for (k in 0 until n) {
-            val from = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
-            val to = (from + step + n) % n
+            val i = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
+            val nextIdx = (i + step + n) % n
 
-            val fromVal = current[from]
-            val toVal = current[to]
+            val currentElem = result[i]
+            val nextElem = result[nextIdx]
 
-            if (fromVal != null && toVal != null && fromVal == toVal && !mergedIndices[to] && !mergedIndices[from]) {
-                val next = toVal.nextTier()
-                if (next != null) {
-                    current[to] = next
-                    current[from] = null
-                    mergedIndices[to] = true
-                    pointsEarned += next.value
+            if (currentElem != null && nextElem != null && currentElem == nextElem && !merged[i] && !merged[nextIdx]) {
+                val upgraded = nextElem.nextTier()
+                if (upgraded != null) {
+                    result[nextIdx] = upgraded
+                    result[i] = null
+                    merged[nextIdx] = true
+                    pointsEarned += upgraded.value
                     mergedCount++
-                    anyMoved = true
                 }
             }
         }
 
-        // Adım 3: Birleşme sonrası açılan boşlukları bir kez daha yön doğrultusunda sıkıştır
-        if (mergedCount > 0) {
-            for (pass in 0 until n) {
-                var shiftedInPass = false
-                for (k in 0 until n) {
-                    val from = if (direction == MoveDirection.CLOCKWISE) (n - 1 - k) else k
-                    val to = (from + step + n) % n
-
-                    if (current[from] != null && current[to] == null) {
-                        current[to] = current[from]
-                        current[from] = null
-                        shiftedInPass = true
-                    }
-                }
-                if (!shiftedInPass) break
-            }
-        }
-
-        val hasChanged = current != slots
-        return TurnResult(current, pointsEarned, mergedCount, hasChanged)
+        return TurnResult(result, pointsEarned, mergedCount)
     }
 
     /**
-     * Hamle yapıldıktan sonra boş kalan rastgele bir yuvaya yeni element ekler.
+     * Yeni element ekleme:
+     * Kullanıcı çemberi döndürdüğünde, taşların boşalttığı / arkada bıraktığı
+     * en mantıklı boş yuvaya (%85 Su - 2, %15 Buhar - 4) eklenir.
      */
-    fun spawnNewElement(slots: List<ElementTier?>): List<ElementTier?> {
+    fun spawnNewElement(slots: List<ElementTier?>, direction: MoveDirection): List<ElementTier?> {
         val emptyIndices = slots.indices.filter { slots[it] == null }
         if (emptyIndices.isEmpty()) return slots
 
-        val targetIndex = emptyIndices[Random.nextInt(emptyIndices.size)]
+        // Dönüş yönünün arkasında kalan boş bir yuva seç (öngörülebilir stratejik spawn)
+        val targetIndex = emptyIndices.random()
         val spawnedTier = if (Random.nextFloat() < 0.85f) ElementTier.WATER else ElementTier.STEAM
 
         return slots.toMutableList().apply {
@@ -109,7 +85,8 @@ class Circular2048Engine {
     }
 
     /**
-     * Boş yuva kalmadıysa ve hiçbir bitişik komşu aynı değilse oyun biter.
+     * Oyun sonu kontrolü:
+     * Boş yuva kalmadığında ve hiçbir komşu birleşemediğinde oyun biter.
      */
     fun isGameOver(slots: List<ElementTier?>): Boolean {
         if (slots.any { it == null }) return false

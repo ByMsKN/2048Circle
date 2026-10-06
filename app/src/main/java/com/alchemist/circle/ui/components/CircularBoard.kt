@@ -12,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -30,22 +29,11 @@ import kotlin.math.*
 @Composable
 fun CircularBoard(
     slots: List<ElementTier?>,
-    rotationAngle: Float,
     cauldronCharge: Float,
     lightningTargets: List<Int>,
     modifier: Modifier = Modifier
 ) {
-    // 1. GENEL ÇEMBER DÖNDÜRME HAREKETİ (Pürüzsüz yay animasyonu ile 360° döner)
-    val animatedRotation by animateFloatAsState(
-        targetValue = rotationAngle,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "WheelRotation"
-    )
-
-    // Güç kazanı ve yıldırım için neşeli nabız (pulse) efekti
+    // Güç kazanı için nabız efekti
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 0.95f,
@@ -74,10 +62,11 @@ fun CircularBoard(
     ) {
         val sizePx = constraints.maxWidth.coerceAtMost(constraints.maxHeight).toFloat()
         
-        // --- 360 DERECE MÜKEMMEL GEOMETRİ HESAPLAMASI ---
-        // 10 adet daire 360 dereceye 36° (2*PI/10) aralıklarla tam eşit dağıtılır.
+        // 360 DERECE SABİT VE DÜZENLİ GEOMETRİ:
         // Yarıçap (radiusPx) = %39
-        // Daire yuva boyutu (slotSize) = YARIYA DÜŞÜRÜLDÜ: %7.8 (~28-30dp)
+        // Yuva boyutu (slotSize) = %7.8 (~28-30dp)
+        // Her yuva saat kadranı gibi tam 36° aralıklarla SABİT yuvalara yerleştirilir.
+        // Kullanıcı çevirdikçe taşlar bu sabit yuvalar üzerinde 1 adım ileri kayar!
         val radiusPx = sizePx * 0.39f
         val slotSize = (sizePx * 0.078f).dp
         val count = slots.size
@@ -86,7 +75,7 @@ fun CircularBoard(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(size.width / 2f, size.height / 2f)
 
-            // Dış atmosferik sihir halesi
+            // Dış sihirli ışıltı
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -120,7 +109,7 @@ fun CircularBoard(
             // YILDIRIM PATLAMALARI: Merkez kazandan hedeflere elektrik arkları
             if (lightningTargets.isNotEmpty()) {
                 lightningTargets.forEach { targetIndex ->
-                    val angleRad = (2.0 * PI / count) * targetIndex + Math.toRadians(animatedRotation.toDouble())
+                    val angleRad = (2.0 * PI / count) * targetIndex
                     val targetX = (radiusPx * cos(angleRad)).toFloat() + center.x
                     val targetY = (radiusPx * sin(angleRad)).toFloat() + center.y
 
@@ -135,7 +124,7 @@ fun CircularBoard(
                         lineTo(targetX, targetY)
                     }
 
-                    // Dış elektrik halesi
+                    // Dış sarı elektrik halesi
                     drawPath(
                         path = lightningPath,
                         color = Color(0xFFFFEB3B),
@@ -151,7 +140,7 @@ fun CircularBoard(
             }
         }
 
-        // 2. ORTADAKİ RENKLİ GÜÇ KAZANI (Cauldron - Merkezde sabit ve canlı)
+        // 2. ORTADAKİ RENKLİ GÜÇ KAZANI (Cauldron)
         val cauldronSize = (sizePx * 0.26f).dp
         Box(
             modifier = Modifier
@@ -200,14 +189,11 @@ fun CircularBoard(
             }
         }
 
-        // 3. 360 DERECE BOYUNCA DÖNEN 10 ADET YUVA (SLOT)
+        // 3. 360 DERECE SABİT 10 YUVA (Taşlar bu yuvalar boyunca sırayla 1 adım kayar)
         for (index in 0 until count) {
-            // Açı formülü: 360°'yi 10 parçaya bölen açı (36°) + Genel çemberin dönüş açısı (animatedRotation)
             val baseAngleRad = (2.0 * PI / count) * index
-            val totalAngleRad = baseAngleRad + Math.toRadians(animatedRotation.toDouble())
-
-            val xOffsetPx = (radiusPx * cos(totalAngleRad)).toFloat()
-            val yOffsetPx = (radiusPx * sin(totalAngleRad)).toFloat()
+            val xOffsetPx = (radiusPx * cos(baseAngleRad)).toFloat()
+            val yOffsetPx = (radiusPx * sin(baseAngleRad)).toFloat()
 
             val tier = slots[index]
             val isBeingStruck = lightningTargets.contains(index)
@@ -244,9 +230,7 @@ fun CircularBoard(
                 if (tier != null) {
                     Text(
                         text = if (isBeingStruck) "💥" else tier.symbol,
-                        fontSize = 16.sp, // Yarıya düşen çember çapına mükemmel oturan emoji boyutu
-                        // Çember dönerken ikonların baş aşağı olmaması için dik tutma karşı rotasyonu
-                        modifier = Modifier.rotate(-animatedRotation)
+                        fontSize = 16.sp
                     )
                 }
             }

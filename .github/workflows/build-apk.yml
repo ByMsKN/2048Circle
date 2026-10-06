@@ -34,9 +34,9 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.4.0
-          name: "Simya Çemberi v1.4.0 (Yarı Boyut Çemberler)"
-          body: "🎯 **Yenilikler:**\n- 10 çemberin çapları tam yarıya düşürüldü (daha kompakt, araları çok daha açık ve ferah)\n- İç emoji boyutları yeni çapa uygun olarak net ve dengeli ölçeklendirildi\n- 360° fiziksel çark rotasyonu ve güç kazanı korundu"
+          tag_name: v1.5.0
+          name: "Simya Çemberi v1.5.0 (Adım Adım Kontrollü Döndürme)"
+          body: "🎯 **Büyük Mekanik Düzeltmesi:**\n- Döndürme sonrası rastgele konumlanma tamamen kaldırıldı!\n- Her sağa/sola çevirmede taşlar yön doğrultusunda tam 1 yuva ilerler.\n- Kullanıcı taşları istediği gibi hizalayabilir ve birleşmeleri stratejik olarak planlayabilir.\n- Çemberlerin çapları kompakt ve araları tam açıktır."
           files: SimyaCemberi.apk
           prerelease: false
         env:

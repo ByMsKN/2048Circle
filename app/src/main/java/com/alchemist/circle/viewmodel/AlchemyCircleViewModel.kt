@@ -31,8 +31,8 @@ class AlchemyCircleViewModel(
     fun startNewGame() {
         val initialSlots = List(GameState.SLOT_COUNT) { null }
         // Başlangıçta tam olarak 2 tanesi dolu olsun
-        val slotsWithFirst = engine.spawnNewElement(initialSlots)
-        val slotsWithSecond = engine.spawnNewElement(slotsWithFirst)
+        val slotsWithFirst = engine.spawnNewElement(initialSlots, MoveDirection.CLOCKWISE)
+        val slotsWithSecond = engine.spawnNewElement(slotsWithFirst, MoveDirection.CLOCKWISE)
 
         _uiState.value = GameState(
             slots = slotsWithSecond,
@@ -49,58 +49,53 @@ class AlchemyCircleViewModel(
         val state = _uiState.value
         if (state.isGameOver || isDischarging) return
 
+        // 1. DÖNDÜRME HAREKETİ:
+        // Her çevirmede taşlar yön doğrultusunda tam 1 yuva ilerler ve aynı taşlar birleşir.
         val result = engine.processMove(state.slots, direction)
 
-        if (result.hasChanged) {
-            val updatedSlots = engine.spawnNewElement(result.newSlots)
-            val newScore = state.score + result.pointsEarned
-            scorePreferences.saveBestScore(newScore)
+        // 2. Yeni element ekle
+        val updatedSlots = engine.spawnNewElement(result.newSlots, direction)
+        val newScore = state.score + result.pointsEarned
+        scorePreferences.saveBestScore(newScore)
 
-            // Her birleşme güç kazanını %25 doldurur
-            val chargeBonus = result.mergedCount * 0.25f
-            val newCharge = (state.cauldronCharge + chargeBonus).coerceAtMost(1.0f)
+        // Güç kazanı dolumu
+        val chargeBonus = result.mergedCount * 0.25f
+        val newCharge = (state.cauldronCharge + chargeBonus).coerceAtMost(1.0f)
 
-            // 10 daire olduğu için dönüş açısı 360/10 = 36 derece
-            val deltaAngle = if (direction == MoveDirection.CLOCKWISE) 36f else -36f
-            val newAngle = state.rotationAngleDegrees + deltaAngle
+        // 3. Görsel çember açısı daima sabit 0° kalır, çünkü taşlar dizi içerisinde
+        // gerçek yuvalarına (1 nokta ileri) taşındı! Böylece çemberler rastgele zıplamaz veya kaymaz!
+        val gameOver = engine.isGameOver(updatedSlots)
 
-            val gameOver = engine.isGameOver(updatedSlots)
+        _uiState.update {
+            it.copy(
+                slots = updatedSlots,
+                score = newScore,
+                bestScore = maxOf(newScore, it.bestScore),
+                cauldronCharge = newCharge,
+                rotationAngleDegrees = 0f,
+                isGameOver = gameOver
+            )
+        }
 
-            _uiState.update {
-                it.copy(
-                    slots = updatedSlots,
-                    score = newScore,
-                    bestScore = maxOf(newScore, it.bestScore),
-                    cauldronCharge = newCharge,
-                    rotationAngleDegrees = newAngle,
-                    isGameOver = gameOver
-                )
-            }
-
-            // Güç kazanı %100 dolduysa otomatik yıldırım patlaması tetikle!
-            if (newCharge >= 1.0f) {
-                triggerCauldronDischarge()
-            }
+        // Güç kazanı %100 dolduysa otomatik yıldırım patlaması tetikle!
+        if (newCharge >= 1.0f) {
+            triggerCauldronDischarge()
         }
     }
 
     private fun triggerCauldronDischarge() {
         isDischarging = true
         viewModelScope.launch {
-            delay(350) // Dönüş animasyonu tamamlansın
+            delay(300)
             val currentSlots = _uiState.value.slots
             val filledIndices = currentSlots.indices.filter { currentSlots[it] != null }
 
             if (filledIndices.isNotEmpty()) {
-                // Rastgele 2 dolu çemberi seç (2 veya daha az varsa hepsini)
                 val targets = filledIndices.shuffled().take(2)
-
-                // 1. Yıldırım hedeflerini ata (Animasyon gösterilsin)
                 _uiState.update { it.copy(lightningTargets = targets) }
 
-                delay(700) // Yıldırım görsel efekti sürsün
+                delay(650) // Yıldırım görsel efekti sürsün
 
-                // 2. Hedeflenen çemberleri yok et ve kazanı sıfırla
                 val newSlots = _uiState.value.slots.toMutableList()
                 targets.forEach { targetIndex ->
                     newSlots[targetIndex] = null
@@ -111,7 +106,7 @@ class AlchemyCircleViewModel(
                         slots = newSlots,
                         cauldronCharge = 0f,
                         lightningTargets = emptyList(),
-                        isGameOver = false // Alan açıldığı için asla Game Over kalmaz
+                        isGameOver = false
                     )
                 }
             } else {
